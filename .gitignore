@@ -1,0 +1,21 @@
+# Save files
+*.sav
+save*/
+
+# Archipelago communication files
+ap_inbox.txt
+ap_outbox.txt
+ap_goal.txt
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.bak
+*~
+
+# If you have any build/output folders
+__pycache__/
+*.pyc
