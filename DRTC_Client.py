@@ -1,16 +1,30 @@
 #!/usr/bin/env python3
 """
-Death Road to Canada - Archipelago Client (v3.1)
+Death Road to Canada - Archipelago Client (v3.2.1)
 A GUI client for connecting Death Road to Canada to Archipelago multiworld.
+
+New in v3.2.1:
+- FIXED: Multiple goal modes now requires ALL to be beaten (was triggering on ANY)
+- Shows progress: "Normal Victory! (1/2 goals)" with remaining goals listed
+- Restores goal progress when reconnecting
+
+New in v3.2.0:
+- BATCH ITEM DELIVERY: Items now sent all at once instead of one-at-a-time
+  (requires archipelago.df v3.7+ with batch inbox support)
+- Fixed location name ranges to match expanded APWorld:
+  - Locations Visited: 1-320 (was 1-100)
+  - Sieges Survived: 1-65 (was 1-20)
+  - Weapons Collected: 1-220 (was 1-100)
+  - Zombie Kills: up to 11000 (was 10000)
+  - Toilets Searched: 1-110 (was 1-100)
+  - Characters Recruited: 1-65 (was 1-20)
+  - Containers Looted: 1-880 (was 1-300)
+
+New in v3.1.1:
+- Fixed crash in large multiworlds (30+ games) - removed WebSocket message size limit
 
 New in v3.1:
 - Fixed PrintJSON to show player/item/location names instead of IDs
-
-New in v3.0:
-- Updated to match APWorld item/location IDs
-- Per-mode location support (Normal, Familiar, Rare, etc.)
-- Mode unlock items
-- Enhanced milestone tracking
 
 Requirements:
     pip install websockets
@@ -44,7 +58,7 @@ except ImportError:
 # =============================================================================
 
 APP_NAME = "Death Road to Canada - Archipelago Client"
-APP_VERSION = "3.1.0"
+APP_VERSION = "3.2.1"
 BASE_ID = 847000  # Must match APWorld
 GAME_NAME = "Death Road to Canada"
 
@@ -158,12 +172,12 @@ def get_location_name(loc_id: int) -> str:
     if 1101 <= loc_id <= 1130:
         return f"Day {loc_id - 1100} Clear"
     
-    # Locations Visited: 2000 + count (2001-2100)
-    if 2001 <= loc_id <= 2100:
+    # Locations Visited: 2000 + count (2001-2320) - expanded to 320
+    if 2001 <= loc_id <= 2320:
         return f"Locations Visited: {loc_id - 2000}"
     
-    # Sieges: 3000 + count (3001-3020)
-    if 3001 <= loc_id <= 3020:
+    # Sieges: 3000 + count (3001-3065) - expanded to 65
+    if 3001 <= loc_id <= 3065:
         return f"Sieges Survived: {loc_id - 3000}"
     
     # Weapon Categories: 4001-4007 (common) and 4102-4109 (rare)
@@ -185,12 +199,12 @@ def get_location_name(loc_id: int) -> str:
     if loc_id in weapon_categories:
         return weapon_categories[loc_id]
     
-    # Weapons Collected: 4200 + count (4201-4300)
-    if 4201 <= loc_id <= 4300:
+    # Weapons Collected: 4200 + count (4201-4420) - expanded to 220
+    if 4201 <= loc_id <= 4420:
         return f"Weapons Collected: {loc_id - 4200}"
     
-    # Kills 1100-10000: 5000 + (kills/100) (5011-5100)
-    if 5011 <= loc_id <= 5100:
+    # Kills 1100-11000: 5000 + (kills/100) (5011-5110) - expanded to 11000
+    if 5011 <= loc_id <= 5110:
         return f"Zombie Kills: {(loc_id - 5000) * 100}"
     
     # Kills 50-1000: 6000 + kills, except 6999 = 1000 kills
@@ -199,16 +213,16 @@ def get_location_name(loc_id: int) -> str:
     if 6050 <= loc_id <= 6950:
         return f"Zombie Kills: {loc_id - 6000}"
     
-    # Toilets: 7000 + count (7001-7100)
-    if 7001 <= loc_id <= 7100:
+    # Toilets: 7000 + count (7001-7110) - expanded to 110
+    if 7001 <= loc_id <= 7110:
         return f"Toilets Searched: {loc_id - 7000}"
     
-    # Recruits: 8000 + count (8001-8020)
-    if 8001 <= loc_id <= 8020:
+    # Recruits: 8000 + count (8001-8065) - expanded to 65
+    if 8001 <= loc_id <= 8065:
         return f"Characters Recruited: {loc_id - 8000}"
     
-    # Containers: 9000 + count (9001-9300)
-    if 9001 <= loc_id <= 9300:
+    # Containers: 9000 + count (9001-9880) - expanded to 880
+    if 9001 <= loc_id <= 9880:
         return f"Containers Looted: {loc_id - 9000}"
     
     # Per-mode locations: 10000 + (mode_id * 100) + offset
@@ -279,6 +293,7 @@ class APClient:
         self.all_locations: Dict[int, str] = {}
         
         self.goal_modes: Set[str] = {"normal"}  # Default to normal if not specified
+        self.completed_goal_modes: Set[str] = set()  # Track which goal modes we've beaten
         
         self._running = False
         self.loop = None
@@ -328,14 +343,20 @@ class APClient:
         return []
     
     def send_item_to_game(self, item_id: int) -> bool:
+        """Append item to inbox. Returns True if written successfully."""
         try:
+            local_id = item_id - BASE_ID
+            
+            # Append to existing content with comma separator (batch mode)
             if self.inbox_path.exists():
                 content = self.inbox_path.read_text().strip()
                 if content:
-                    return False
-            
-            local_id = item_id - BASE_ID
-            self.inbox_path.write_text(str(local_id))
+                    # Append to existing items
+                    self.inbox_path.write_text(f"{content},{local_id}")
+                else:
+                    self.inbox_path.write_text(str(local_id))
+            else:
+                self.inbox_path.write_text(str(local_id))
             return True
         except Exception as e:
             self.log(f"Error writing inbox: {e}", "error")
@@ -380,7 +401,7 @@ class APClient:
             self.log("Connected to room, requesting data...", "info")
             # Request data package for ALL games in the room
             games = msg.get("games", [])
-            self.log(f"Games in room: {', '.join(games)}", "info")
+            self.log(f"Games in room: {len(games)} games", "info")
             await self.send_message({
                 "cmd": "GetDataPackage",
                 "games": games  # Request all games for cross-game lookups
@@ -415,6 +436,24 @@ class APClient:
             if "goal_modes" in slot_data:
                 self.goal_modes = set(slot_data["goal_modes"])
                 self.log(f"  Goal modes: {', '.join(self.goal_modes)}", "info")
+            
+            # Check already-completed locations for goal mode victories
+            self.completed_goal_modes = set()
+            for loc in self.locations_checked:
+                if 10000 <= loc <= 12199:
+                    mode_offset = loc - 10000
+                    mode_id = mode_offset // 100
+                    offset = mode_offset % 100
+                    if offset == 99:  # Victory location
+                        mode_key = MODE_ID_TO_KEY.get(mode_id)
+                        if mode_key and mode_key in self.goal_modes:
+                            self.completed_goal_modes.add(mode_key)
+            
+            if self.completed_goal_modes:
+                remaining = self.goal_modes - self.completed_goal_modes
+                self.log(f"  Goals completed: {', '.join(self.completed_goal_modes)} ({len(self.completed_goal_modes)}/{len(self.goal_modes)})", "info")
+                if remaining:
+                    self.log(f"  Goals remaining: {', '.join(remaining)}", "info")
             
             for player in msg.get("players", []):
                 self.players[player["slot"]] = player["name"]
@@ -522,24 +561,41 @@ class APClient:
                     mode_name = MODE_INFO.get(mode_id, f"Mode {mode_id}")
                     
                     if mode_key and mode_key in self.goal_modes:
-                        self.log(f"🎉 GOAL COMPLETE - {mode_name} Victory counts towards goal!", "success")
-                        await self.trigger_goal_complete()
+                        # Add to completed goals
+                        self.completed_goal_modes.add(mode_key)
+                        remaining = self.goal_modes - self.completed_goal_modes
+                        
+                        if remaining:
+                            # Still more goals to complete
+                            self.log(f"🏆 {mode_name} Victory! ({len(self.completed_goal_modes)}/{len(self.goal_modes)} goals)", "success")
+                            self.log(f"   Remaining: {', '.join(remaining)}", "info")
+                        else:
+                            # ALL goal modes complete!
+                            self.log(f"🎉 ALL GOALS COMPLETE - {mode_name} was the final victory!", "success")
+                            await self.trigger_goal_complete()
                     else:
                         self.log(f"ℹ {mode_name} Victory (not a goal mode)", "info")
     
     async def process_item_queue(self):
+        """Process all pending items - writes them all to inbox at once (batch mode)."""
+        items_sent = []
         while not self.item_queue.empty():
             try:
                 item_index, item_id = self.item_queue.get_nowait()
                 if self.send_item_to_game(item_id):
                     self.items_sent_to_game.add(item_index)
-                    item_name = self.get_item_name(item_id)
-                    self.log(f"→ Sent to game: {item_name}", "game")
+                    items_sent.append((item_index, item_id))
                 else:
+                    # Put it back if failed
                     self.item_queue.put((item_index, item_id))
                     break
             except queue.Empty:
                 break
+        
+        # Log all items sent in this batch
+        for item_index, item_id in items_sent:
+            item_name = self.get_item_name(item_id)
+            self.log(f"→ Sent to game: {item_name}", "game")
     
     async def run(self):
         self._running = True
@@ -551,7 +607,8 @@ class APClient:
         self.write_status("CONNECTING")
         
         try:
-            async with websockets.connect(url) as ws:
+            # max_size=None removes the 1MB default limit for large multiworlds
+            async with websockets.connect(url, max_size=None) as ws:
                 self.ws = ws
                 self.log("WebSocket connected!", "success")
                 

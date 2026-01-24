@@ -1,6 +1,8 @@
 \ =============================================================================
 \ ARCHIPELAGO - Death Road to Canada Integration
-\ Version 3.6 - Fixed kill persistence across runs/deaths
+\ Version 3.7 - Batch item delivery (comma-separated inbox processing)
+\            - Removed misleading "GOAL COMPLETE" (client determines multi-goal completion)
+\            - Fixed kill persistence across runs/deaths
 \            - Massively expanded random weapon pools (25+ common melee, 8 common guns,
 \              20 uncommon melee, 12 uncommon guns, 18 rare melee, 12 rare guns, 14 legendary)
 \ =============================================================================
@@ -389,7 +391,7 @@
 
 \ Random weapon selection helpers - return weapon ID on stack
 \ rnd takes (min max) and returns random number in that range
-\ EXPANDED POOLS v3.6 - Many more weapons per tier!
+\ EXPANDED POOLS v3.7 - Many more weapons per tier!
 
 : ap-random-common-melee
     \ 25 common melee weapons: bats, sticks, household items
@@ -788,11 +790,46 @@
 \ FILE I/O
 \ -----------------------------------------------------------------------------
 
+\ Batch inbox processing variables
+0 value ap-inbox-num     \ Accumulated number
+0 value ap-inbox-has-num \ Flag: do we have a number to process?
+
+\ Process accumulated number as item command
+: ap-process-inbox-num
+    ap-inbox-has-num if
+        ($ "" ap-inbox-num .. $) to ap-cmd
+        ap-dispatch
+        0 to ap-inbox-num
+        0 to ap-inbox-has-num
+    then
+;
+
+\ Process a single character from inbox (called by $process)
+: ap-inbox-char ( ascii -- )
+    dup 48 >= over 57 <= and if
+        \ It's a digit (0-9), accumulate
+        48 -                          \ Convert ASCII to digit value
+        ap-inbox-num 10 * + to ap-inbox-num
+        1 to ap-inbox-has-num
+    else
+        \ Not a digit (comma, space, etc.) - process accumulated number
+        drop
+        ap-process-inbox-num
+    then
+;
+
+\ Batch inbox processing - handles comma-separated items like "100,200,300"
 : ap-check-inbox
     AP_INBOX $sread if
         to ap-cmd
         ap-cmd "" $= not if
-            ap-dispatch
+            \ Reset accumulator
+            0 to ap-inbox-num
+            0 to ap-inbox-has-num
+            \ Process each character
+            ap-cmd ' ap-inbox-char $process
+            \ Process final number (if any)
+            ap-process-inbox-num
         then
         "" AP_INBOX $swrite
     then
@@ -856,8 +893,8 @@
         \ Global victory (legacy)
         1020 ap-send-check
         "CANADA REACHED!" ap-notify
-        "GOAL COMPLETE!" ap-notify
-        \ Write goal completion file for client
+        \ Note: Client determines if ALL goal modes are complete
+        \ Write goal completion file for client (legacy, client ignores this)
         "1" AP_GOAL $swrite
         1 to ap-victory-sent
     then
@@ -2856,7 +2893,7 @@ last to main-event-new-session
 \ Try to load persistent progress on mod load
 ap-load-progress
 
-"Archipelago mod v3.6 loaded" print
+"Archipelago mod v3.7 loaded" print
 "  - Use the ARCHIPELAGO menu option!" print
 "  - Progress persists across deaths" print
 "  - Kill tracking now persists properly!" print
