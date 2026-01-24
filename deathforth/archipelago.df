@@ -1,0 +1,3240 @@
+\ =============================================================================
+\ ARCHIPELAGO - Death Road to Canada Integration
+\ Version 3.6 - Fixed kill persistence across runs/deaths
+\            - Massively expanded random weapon pools (25+ common melee, 8 common guns,
+\              20 uncommon melee, 12 uncommon guns, 18 rare melee, 12 rare guns, 14 legendary)
+\ =============================================================================
+
+\ -----------------------------------------------------------------------------
+\ STATE VARIABLES - Global (shared across all modes)
+\ -----------------------------------------------------------------------------
+
+0 value ap-day-last
+0 value ap-day-clear-last
+0 value ap-items-received
+0 value ap-missions-done
+0 value ap-missions-last-sent
+0 value ap-kills-last
+0 value ap-kills-total       \ Cumulative kills across ALL runs
+0 value ap-kills-this-run    \ Track kills at start of this run
+0 value ap-kills-accumulated \ Kills from current run already added to ap-kills-total
+0 value ap-weapons-total     \ Cumulative weapons picked up across ALL runs
+0 value ap-weapons-collected \ Weapons collected THIS RUN (increments on every pickup)
+0 value ap-sieges-done
+0 value ap-in-siege
+0 value ap-siege-last-sent
+0 value ap-siege-last-day
+0 value ap-temp-id
+0 value ap-temp-kills
+0 value ap-temp-day
+"" value ap-cmd
+
+\ Flag to prevent checks before game actually starts
+0 value ap-game-active
+
+\ Toilet tracking
+0 value ap-toilets-opened
+0 value ap-toilets-last-sent
+
+\ Recruit tracking  
+0 value ap-recruits-done
+0 value ap-recruits-last-sent
+
+\ Container loot tracking
+0 value ap-containers-looted
+0 value ap-containers-last-sent
+
+\ Weapon tracking flags (0 = not found, 1 = found and sent)
+0 value ap-found-handgun
+0 value ap-found-rifle
+0 value ap-found-shotgun
+0 value ap-found-blade
+0 value ap-found-explosive
+0 value ap-found-heavy
+0 value ap-found-blunt
+
+\ Rare weapon flags
+0 value ap-found-flamethrower
+
+\ Weapon count tracking
+0 value ap-weapon-count-last
+
+0 value ap-found-minigun
+0 value ap-found-ak47
+0 value ap-found-sledge
+0 value ap-found-fireaxe
+0 value ap-found-bow
+
+\ -----------------------------------------------------------------------------
+\ PER-MODE TRACKING VARIABLES
+\ Each mode tracks: missions completed, highest day reached, day cleared, victory achieved
+\ Format: ap-[mode]-missions, ap-[mode]-days, ap-[mode]-days-clear, ap-[mode]-victory
+\ -----------------------------------------------------------------------------
+
+\ Normal Mode
+0 value ap-normal-missions
+0 value ap-normal-days
+0 value ap-normal-days-clear
+0 value ap-normal-victory
+
+\ Familiar Characters Mode
+0 value ap-familiar-missions
+0 value ap-familiar-days
+0 value ap-familiar-days-clear
+0 value ap-familiar-victory
+
+\ Rare Characters Mode
+0 value ap-rare-missions
+0 value ap-rare-days
+0 value ap-rare-days-clear
+0 value ap-rare-victory
+
+\ Short Trip Mode
+0 value ap-short-missions
+0 value ap-short-days
+0 value ap-short-days-clear
+0 value ap-short-victory
+
+\ Long Road Mode
+0 value ap-long-missions
+0 value ap-long-days
+0 value ap-long-days-clear
+0 value ap-long-victory
+
+\ Four Jerks Mode
+0 value ap-4jerks-missions
+0 value ap-4jerks-days
+0 value ap-4jerks-days-clear
+0 value ap-4jerks-victory
+
+\ Deadlier Road Mode
+0 value ap-deadlier-missions
+0 value ap-deadlier-days
+0 value ap-deadlier-days-clear
+0 value ap-deadlier-victory
+
+\ Familiar EXTREME Mode
+0 value ap-familiarEX-missions
+0 value ap-familiarEX-days
+0 value ap-familiarEX-days-clear
+0 value ap-familiarEX-victory
+
+\ Rare EXTREME Mode
+0 value ap-rareEX-missions
+0 value ap-rareEX-days
+0 value ap-rareEX-days-clear
+0 value ap-rareEX-victory
+
+\ Marathon Mode
+0 value ap-marathon-missions
+0 value ap-marathon-days
+0 value ap-marathon-days-clear
+0 value ap-marathon-victory
+
+\ KEPA Mode
+0 value ap-kepa-missions
+0 value ap-kepa-days
+0 value ap-kepa-days-clear
+0 value ap-kepa-victory
+
+\ Four Jerks EXTREME Mode
+0 value ap-4jerksEX-missions
+0 value ap-4jerksEX-days
+0 value ap-4jerksEX-days-clear
+0 value ap-4jerksEX-victory
+
+\ Endless Mode
+0 value ap-endless-missions
+0 value ap-endless-days
+0 value ap-endless-days-clear
+0 value ap-endless-victory
+
+\ OPP Mode
+0 value ap-opp-missions
+0 value ap-opp-days
+0 value ap-opp-days-clear
+0 value ap-opp-victory
+
+\ Quick Death Mode
+0 value ap-quickdeath-missions
+0 value ap-quickdeath-days
+0 value ap-quickdeath-days-clear
+0 value ap-quickdeath-victory
+
+\ Infection Mode
+0 value ap-infection-missions
+0 value ap-infection-days
+0 value ap-infection-days-clear
+0 value ap-infection-victory
+
+\ Weather Mode
+0 value ap-weather-missions
+0 value ap-weather-days
+0 value ap-weather-days-clear
+0 value ap-weather-victory
+
+\ RPG Mode
+0 value ap-rpg-missions
+0 value ap-rpg-days
+0 value ap-rpg-days-clear
+0 value ap-rpg-victory
+
+\ Scepter Mode
+0 value ap-scepter-missions
+0 value ap-scepter-days
+0 value ap-scepter-days-clear
+0 value ap-scepter-victory
+
+\ Mutation Mode
+0 value ap-mutation-missions
+0 value ap-mutation-days
+0 value ap-mutation-days-clear
+0 value ap-mutation-victory
+
+\ Infection EXTREME Mode
+0 value ap-infectionEX-missions
+0 value ap-infectionEX-days
+0 value ap-infectionEX-days-clear
+0 value ap-infectionEX-victory
+
+\ -----------------------------------------------------------------------------
+\ MODE UNLOCK FLAGS (0 = locked, 1 = unlocked)
+\ These are set by receiving items from Archipelago
+\ -----------------------------------------------------------------------------
+
+0 value ap-mode-familiar
+0 value ap-mode-rare
+0 value ap-mode-short
+0 value ap-mode-long
+0 value ap-mode-4jerks
+0 value ap-mode-deadlier
+0 value ap-mode-familiarEX
+0 value ap-mode-rareEX
+0 value ap-mode-marathon
+0 value ap-mode-kepa
+0 value ap-mode-4jerksEX
+0 value ap-mode-endless
+0 value ap-mode-opp
+0 value ap-mode-quickdeath
+0 value ap-mode-infection
+0 value ap-mode-weather
+0 value ap-mode-rpg
+0 value ap-mode-scepter
+0 value ap-mode-mutation
+0 value ap-mode-infectionEX
+
+\ -----------------------------------------------------------------------------
+\ MODE DETECTION HELPER
+\ Returns a string identifier for current mode for location naming
+\ -----------------------------------------------------------------------------
+
+: ap-current-mode-id
+    gamedef{ ' defaultmode gamemode? } if "normal" then
+    gamedef{ ' familiarchars gamemode? } if "familiar" then
+    gamedef{ ' specialchars gamemode? } if "rare" then
+    gamedef{ ' shortroad gamemode? } if "short" then
+    gamedef{ ' longroad gamemode? } if "long" then
+    gamedef{ ' 4jerksmode gamemode? } if "4jerks" then
+    gamedef{ ' deadlier gamemode? } if "deadlier" then
+    gamedef{ ' familiarcharsEX gamemode? } if "familiarEX" then
+    gamedef{ ' specialcharsEX gamemode? } if "rareEX" then
+    gamedef{ ' marathonmode gamemode? } if "marathon" then
+    gamedef{ ' kepamode gamemode? } if "kepa" then
+    gamedef{ ' 4jerksmodeEX gamemode? } if "4jerksEX" then
+    gamedef{ ' endlessmode gamemode? } if "endless" then
+    gamedef{ ' OPPmode gamemode? } if "opp" then
+    gamedef{ ' quicknightmare gamemode? } if "quickdeath" then
+    gamedef{ ' theinfection gamemode? } if "infection" then
+    gamedef{ ' weathermode gamemode? } if "weather" then
+    gamedef{ ' thelongsiege gamemode? } if "rpg" then
+    gamedef{ ' sceptermode gamemode? } if "scepter" then
+    gamedef{ ' mutationmode gamemode? } if "mutation" then
+    gamedef{ ' theinfectionEX gamemode? } if "infectionEX" then
+    "unknown"
+;
+
+\ -----------------------------------------------------------------------------
+\ FILE PATHS
+\ -----------------------------------------------------------------------------
+
+: AP_INBOX savename-prefix "ap_inbox.txt" .. ;
+: AP_OUTBOX savename-prefix "ap_outbox.txt" .. ;
+: AP_GOAL savename-prefix "ap_goal.txt" .. ;
+
+\ -----------------------------------------------------------------------------
+\ NOTIFICATIONS
+\ -----------------------------------------------------------------------------
+
+\ Message slot for staggered display
+0 value ap-msg-slot
+
+: ap-notify ( msg -- )
+    \ Cycle through 4 vertical positions to avoid overlap
+    \ 180 ticks = 3 seconds at 60fps
+    ap-msg-slot 4 %
+    case
+        0 of 180 view_w 2 / view_h 0.10 * msgtickxy endof
+        1 of 180 view_w 2 / view_h 0.16 * msgtickxy endof
+        2 of 180 view_w 2 / view_h 0.22 * msgtickxy endof
+        3 of 180 view_w 2 / view_h 0.28 * msgtickxy endof
+    endcase
+    ' ap-msg-slot ++
+;
+
+: ap-notify-item ( msg -- )
+    180 view_w 2 / view_h 0.40 * msgtickxy
+;
+
+\ -----------------------------------------------------------------------------
+\ WEAPON TRACKING OVERRIDE
+\ Override trunk.weapon+ to track all weapons added to trunk
+\ -----------------------------------------------------------------------------
+
+\ Save reference to original trunk.weapon+ 
+' trunk.weapon+ value ap-original-trunk-weapon+
+
+\ New trunk.weapon+ that tracks pickups
+: trunk.weapon+ ( count weapon-id -- )
+    2dup ap-original-trunk-weapon+ execute  \ Call original
+    drop                                      \ Drop weapon-id, keep count
+    ap-weapons-collected + to ap-weapons-collected  \ Add count to collected
+;
+
+\ -----------------------------------------------------------------------------
+\ ITEM HANDLERS
+\ -----------------------------------------------------------------------------
+
+\ === RESOURCES ===
+: ap-item-100 5 trunk-food+ "AP: +5 Food" ap-notify-item ;
+: ap-item-101 15 trunk-food+ "AP: +15 Food" ap-notify-item ;
+: ap-item-102 
+    "GAS BEFORE:" print trunk-gas print
+    50 trunk-gas+ 
+    "GAS AFTER:" print trunk-gas print
+    "AP: +50 Gas" ap-notify-item 
+;
+: ap-item-103 20 trunk-bullet+ "AP: +20 Ammo" ap-notify-item ;
+: ap-item-104 5 trunk-medical+ "AP: +5 Medical" ap-notify-item ;
+
+\ === STAT TRAINING ===
+: ap-item-110 ' .shooting++ foreach-team-char "AP: Shooting++" ap-notify-item ;
+: ap-item-111 ' .strength++ foreach-team-char "AP: Strength++" ap-notify-item ;
+: ap-item-112 ' .fitness++ foreach-team-char "AP: Fitness++" ap-notify-item ;
+: ap-item-113 ' .medical++ foreach-team-char "AP: Medical++" ap-notify-item ;
+: ap-item-114 ' .mechanic++ foreach-team-char "AP: Mechanical++" ap-notify-item ;
+: ap-item-115 morale++all "AP: Morale++" ap-notify-item ;
+
+\ === WEAPONS - COMMON ===
+: ap-item-120 1 WEAPON_PISTOL trunk.weapon+ "AP: Pistol" ap-notify-item ;
+: ap-item-121 1 WEAPON_SHOTGUN trunk.weapon+ "AP: Shotgun" ap-notify-item ;
+: ap-item-122 1 WEAPON_UZI trunk.weapon+ "AP: Uzi" ap-notify-item ;
+: ap-item-123 1 WEAPON_HUNTING trunk.weapon+ "AP: Rifle" ap-notify-item ;
+
+\ === WEAPONS - RARE ===
+: ap-item-124 3 WEAPON_GRENADE trunk.weapon+ "AP: Grenades x3" ap-notify-item ;
+: ap-item-125 1 WEAPON_CHAINSAW trunk.weapon+ "AP: Chainsaw" ap-notify-item ;
+: ap-item-126 1 WEAPON_AK47 trunk.weapon+ "AP: AK-47" ap-notify-item ;
+: ap-item-127 1 WEAPON_FLAMETHROWER trunk.weapon+ "AP: Flamethrower" ap-notify-item ;
+
+\ === SPECIAL ===
+: ap-item-130 gstats{ 1 ' zombo-point +! save } "AP: +1 Zombo Point!" ap-notify-item ;
+: ap-item-131 
+    car-engine 2 + car-max-engine min to car-engine 
+    car-update-display
+    "AP: +2 Engine Repair!" ap-notify-item 
+;
+: ap-item-132 10 trunk-food+ 10 trunk-medical+ "AP: Survivor Cache!" ap-notify-item ;
+
+\ === PROGRESSIVE RESOURCES (200s) ===
+: ap-item-200 3 trunk-food+ "AP: +3 Food" ap-notify-item ;
+: ap-item-201 8 trunk-food+ "AP: +8 Food" ap-notify-item ;
+: ap-item-202 12 trunk-food+ "AP: +12 Food" ap-notify-item ;
+: ap-item-203 20 trunk-food+ "AP: +20 Food" ap-notify-item ;
+: ap-item-210 25 trunk-gas+ "AP: +25 Gas" ap-notify-item ;
+: ap-item-211 75 trunk-gas+ "AP: +75 Gas" ap-notify-item ;
+: ap-item-212 100 trunk-gas+ "AP: +100 Gas" ap-notify-item ;
+: ap-item-213 150 trunk-gas+ "AP: +150 Gas" ap-notify-item ;
+: ap-item-220 10 trunk-bullet+ "AP: +10 Ammo" ap-notify-item ;
+: ap-item-221 30 trunk-bullet+ "AP: +30 Ammo" ap-notify-item ;
+: ap-item-222 50 trunk-bullet+ "AP: +50 Ammo" ap-notify-item ;
+: ap-item-223 75 trunk-bullet+ "AP: +75 Ammo" ap-notify-item ;
+: ap-item-230 3 trunk-medical+ "AP: +3 Medical" ap-notify-item ;
+: ap-item-231 8 trunk-medical+ "AP: +8 Medical" ap-notify-item ;
+: ap-item-232 15 trunk-medical+ "AP: +15 Medical" ap-notify-item ;
+
+\ === CHARACTER UPGRADES (300s) ===
+: ap-item-300 ' .strength++ foreach-team-char "AP: STR Manual" ap-notify-item ;
+: ap-item-301 ' .fitness++ foreach-team-char "AP: FIT Guide" ap-notify-item ;
+: ap-item-302 ' .shooting++ foreach-team-char "AP: SHT Voucher" ap-notify-item ;
+: ap-item-303 ' .medical++ foreach-team-char "AP: MED Textbook" ap-notify-item ;
+: ap-item-304 ' .mechanic++ foreach-team-char "AP: MCH Handbook" ap-notify-item ;
+: ap-item-310 ' .strength++ foreach-team-char ' .strength++ foreach-team-char "AP: +2 STR" ap-notify-item ;
+: ap-item-311 ' .fitness++ foreach-team-char ' .fitness++ foreach-team-char "AP: +2 FIT" ap-notify-item ;
+: ap-item-312 ' .shooting++ foreach-team-char ' .shooting++ foreach-team-char "AP: +2 SHT" ap-notify-item ;
+: ap-item-313 ' .medical++ foreach-team-char ' .medical++ foreach-team-char "AP: +2 MED" ap-notify-item ;
+: ap-item-314 ' .mechanic++ foreach-team-char ' .mechanic++ foreach-team-char "AP: +2 MCH" ap-notify-item ;
+: ap-item-321 ' .vitality++ foreach-team-char "AP: Vitality++" ap-notify-item ;
+: ap-item-322 ' .dexterity++ foreach-team-char "AP: Speed++" ap-notify-item ;
+
+\ === MORALE (400s) ===
+: ap-item-400 morale++all "AP: Morale+1" ap-notify-item ;
+: ap-item-401 morale++all morale++all "AP: Morale+2" ap-notify-item ;
+: ap-item-402 morale++all morale++all morale++all "AP: Morale+3" ap-notify-item ;
+: ap-item-403 ' .morale4+ foreach-team-char ' .morale4+ foreach-team-char "AP: Morale+8!" ap-notify-item ;
+: ap-item-410 morale++all 3 trunk-medical+ "AP: Calming Tea" ap-notify-item ;
+: ap-item-411 morale++all morale++all 3 trunk-food+ "AP: Friendship!" ap-notify-item ;
+: ap-item-412 morale++all morale++all morale++all 5 trunk-medical+ "AP: Therapy!" ap-notify-item ;
+
+\ === RANDOM WEAPONS (500s) ===
+
+\ Random weapon selection helpers - return weapon ID on stack
+\ rnd takes (min max) and returns random number in that range
+\ EXPANDED POOLS v3.6 - Many more weapons per tier!
+
+: ap-random-common-melee
+    \ 25 common melee weapons: bats, sticks, household items
+    0 24 rnd
+    dup 0 = if drop WEAPON_BASEBALL then      \ Baseball Bat
+    dup 1 = if drop WEAPON_WOOD then          \ Piece of Wood
+    dup 2 = if drop WEAPON_BROOM then         \ Broomstick
+    dup 3 = if drop WEAPON_MOP then           \ Mop
+    dup 4 = if drop WEAPON_FRYING then        \ Frying Pan
+    dup 5 = if drop WEAPON_WRENCH then        \ Wrench
+    dup 6 = if drop WEAPON_METAL then         \ Metal Pipe
+    dup 7 = if drop WEAPON_GOLF then          \ Golf Club
+    dup 8 = if drop WEAPON_HOCKEY then        \ Hockey Stick
+    dup 9 = if drop WEAPON_CRICKET then       \ Cricket Bat
+    dup 10 = if drop WEAPON_ALUMINUM then     \ Aluminum Bat
+    dup 11 = if drop WEAPON_UMBRELLA then     \ Umbrella
+    dup 12 = if drop WEAPON_FLASHLIGHT then   \ Flashlight
+    dup 13 = if drop WEAPON_NAIL then         \ Nail Board
+    dup 14 = if drop WEAPON_LOG then          \ Log
+    dup 15 = if drop WEAPON_CLAWHAMMER then   \ Hammer (Claw Hammer)
+    dup 16 = if drop WEAPON_RAKE then         \ Rake
+    dup 17 = if drop WEAPON_SPOON then        \ Spoon
+    dup 18 = if drop WEAPON_GUITAR then       \ Electric Guitar
+    dup 19 = if drop WEAPON_KNITTING then     \ Knitting Needle
+    dup 20 = if drop WEAPON_BEACH then        \ Beach Umbrella
+    dup 21 = if drop WEAPON_BIGLOG then       \ Big Log
+    dup 22 = if drop WEAPON_UPPERCUT then     \ Bonesaw / Boxing move
+    dup 23 = if drop WEAPON_GAUNTLET then     \ Gauntlet
+    drop WEAPON_DEVILFORK                     \ Devil Fork / Pitchfork
+;
+
+: ap-random-common-gun
+    \ 8 common guns: basic pistols and rifles
+    0 7 rnd
+    dup 0 = if drop WEAPON_PISTOL then        \ Pistol
+    dup 1 = if drop WEAPON_SNUBNOSE then      \ Snubnose Revolver
+    dup 2 = if drop WEAPON_HUNTING then       \ Hunting Rifle
+    dup 3 = if drop WEAPON_RIFLE then         \ Cowboy Rifle
+    dup 4 = if drop WEAPON_SIXSHOOTER then    \ Dolt Big Iron / Autorevolver
+    dup 5 = if drop WEAPON_SHOTGUN then       \ Shotgun
+    dup 6 = if drop WEAPON_BLOWTORCH then     \ Blowtorch
+    drop WEAPON_BOW                           \ Bow
+;
+
+: ap-random-uncommon-melee
+    \ 20 uncommon melee weapons: blades, tools, better quality
+    0 19 rnd
+    dup 0 = if drop WEAPON_MACHETE1 then      \ Rusty Machete
+    dup 1 = if drop WEAPON_MACHETE2 then      \ Sturdy Machete
+    dup 2 = if drop WEAPON_CLEAVER then       \ Meat Cleaver
+    dup 3 = if drop WEAPON_CROWBAR then       \ Crowbar
+    dup 4 = if drop WEAPON_SHOVEL then        \ Shovel
+    dup 5 = if drop WEAPON_KITCH then         \ Kitchen Knife
+    dup 6 = if drop WEAPON_HATCHET then       \ Hatchet
+    dup 7 = if drop WEAPON_PICKAXE then       \ Pickaxe
+    dup 8 = if drop WEAPON_MEDIEVAL then      \ Medieval Axe
+    dup 9 = if drop WEAPON_SCALPEL then       \ Scalpel
+    dup 10 = if drop WEAPON_KNIGHT then       \ Knight Sword
+    dup 11 = if drop WEAPON_KUNAI then        \ Kunai
+    dup 12 = if drop WEAPON_MODSPEAR then     \ Tactical Spear
+    dup 13 = if drop WEAPON_RAMBEUX then      \ Rambeux Knife (Kukri)
+    dup 14 = if drop WEAPON_DAGGER then       \ Dagger
+    dup 15 = if drop WEAPON_SCYTHE then       \ Scythe
+    dup 16 = if drop WEAPON_CHAINSAW then     \ Chainsaw
+    dup 17 = if drop WEAPON_FIRE then         \ Fire Axe
+    dup 18 = if drop WEAPON_BARDICHE then     \ Bardiche
+    drop WEAPON_CAVALRY                       \ Cavalry Sabre
+;
+
+: ap-random-uncommon-gun
+    \ 12 uncommon guns: mid-tier firearms
+    0 11 rnd
+    dup 0 = if drop WEAPON_UZI then           \ Uzi
+    dup 1 = if drop WEAPON_DOLT then          \ Dolt .45 (Magnum)
+    dup 2 = if drop WEAPON_DSHOTGUN then      \ Double Barrel Shotgun
+    dup 3 = if drop WEAPON_SLUG then          \ Slug Shotgun
+    dup 4 = if drop WEAPON_AUTOSHOT then      \ Automatic Shotgun
+    dup 5 = if drop WEAPON_SILENTPISTOL then  \ Silenced Pistol
+    dup 6 = if drop WEAPON_SILENTSHOTGUN then \ Quiet Shotgun
+    dup 7 = if drop WEAPON_WARBOW then        \ Longbow
+    dup 8 = if drop WEAPON_ASSAULT then       \ DNK-16 / Assault Rifle
+    dup 9 = if drop WEAPON_FLET then          \ Flechette Shotgun
+    dup 10 = if drop WEAPON_BLACKMAMBA then   \ Mamba
+    drop WEAPON_FLIPARI                       \ Flip Rifle
+;
+
+: ap-random-rare-melee
+    \ 18 rare melee weapons: high quality, powerful
+    0 17 rnd
+    dup 0 = if drop WEAPON_SLEDGE then        \ Sledgehammer
+    dup 1 = if drop WEAPON_CLAYMORE then      \ Claymore
+    dup 2 = if drop WEAPON_ZWEI then          \ Zweihander
+    dup 3 = if drop WEAPON_MASONMACHETE then  \ Mason's Machete
+    dup 4 = if drop WEAPON_FIERCE then        \ Fierce Claws
+    dup 5 = if drop WEAPON_GUSTER then        \ Guster Sword
+    dup 6 = if drop WEAPON_MASONSAW then      \ Mason's Chainsaw
+    dup 7 = if drop WEAPON_ECHAINSAW then     \ Electric Chainsaw
+    dup 8 = if drop WEAPON_MEGAMAUL then      \ Mega Maul
+    dup 9 = if drop WEAPON_GOLDKNIFE then     \ Golden Knife
+    dup 10 = if drop WEAPON_MJOLNIR then      \ Mjollin'er
+    dup 11 = if drop WEAPON_HERO then         \ Hero Sword (Take This)
+    dup 12 = if drop WEAPON_DEBUTANTE then    \ Debutante Umbrella
+    dup 13 = if drop WEAPON_CHAINSAW then     \ Chainsaw
+    dup 14 = if drop WEAPON_ANTLERS then      \ Moose Antlers
+    dup 15 = if drop WEAPON_SCYTHE then       \ Scythe
+    dup 16 = if drop WEAPON_GRENADE then      \ Grenades (thrown melee)
+    drop WEAPON_MOLOTOV                       \ Molotovs (thrown melee)
+;
+
+: ap-random-rare-gun
+    \ 12 rare guns: high quality firearms
+    0 11 rnd
+    dup 0 = if drop WEAPON_AK47 then          \ AK-47
+    dup 1 = if drop WEAPON_DAWG then          \ Big Dawg
+    dup 2 = if drop WEAPON_LILDAWG then       \ Lil' Dawg
+    dup 3 = if drop WEAPON_MAZER then         \ Mazer Pistol
+    dup 4 = if drop WEAPON_MOARGUN then       \ M.O.A.R (Mother of All Guns)
+    dup 5 = if drop WEAPON_SLAMFIRE then      \ Slamfire
+    dup 6 = if drop WEAPON_THREEBURST then    \ Three-burst
+    dup 7 = if drop WEAPON_FOSBURY then       \ Fosbury
+    dup 8 = if drop WEAPON_GOLDPISTOL then    \ Golden Pistol
+    dup 9 = if drop WEAPON_MODRED9 then       \ Modded Red9
+    dup 10 = if drop WEAPON_RED9 then         \ Red9
+    drop WEAPON_MARBELLE                      \ Marbelle
+;
+
+: ap-random-legendary
+    \ 14 legendary weapons: extremely rare and powerful
+    0 13 rnd
+    dup 0 = if drop WEAPON_MINIGUN then       \ Minigun
+    dup 1 = if drop WEAPON_FLAMETHROWER then  \ Flamethrower
+    dup 2 = if drop WEAPON_VLAMB then         \ Vlambeer Shotgun
+    dup 3 = if drop WEAPON_RIDIC then         \ Ridiculous Pistol
+    dup 4 = if drop WEAPON_RAYGUN then        \ Ray Gun
+    dup 5 = if drop WEAPON_CANNON then        \ Pirate Cannon
+    dup 6 = if drop WEAPON_SOLARMAZER then    \ Solar Mazer
+    dup 7 = if drop WEAPON_CAPTAINCANNON then \ Captain's Cannon
+    dup 8 = if drop WEAPON_GIGAMAN then       \ GIGA GUSTER
+    dup 9 = if drop WEAPON_NAPALM then        \ Napalm Thrower
+    dup 10 = if drop WEAPON_BAZOOKA then      \ Bazooka
+    dup 11 = if drop WEAPON_MJOLNIR then      \ Mjollin'er
+    dup 12 = if drop WEAPON_ECHAINSAW then    \ Electric Chainsaw
+    drop WEAPON_MASONSAW                      \ Mason's Chainsaw
+;
+
+\ Random weapon item handlers - store weapon in variable first
+0 value ap-rand-weapon
+
+: ap-item-500 ap-random-common-melee to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ "AP: Random Common Melee" ap-notify-item ;
+: ap-item-501 ap-random-common-gun to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ "AP: Random Common Gun" ap-notify-item ;
+: ap-item-502 ap-random-uncommon-melee to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ "AP: Random Uncommon Melee" ap-notify-item ;
+: ap-item-503 ap-random-uncommon-gun to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ "AP: Random Uncommon Gun" ap-notify-item ;
+: ap-item-504 ap-random-rare-melee to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ "AP: Random Rare Melee!" ap-notify-item ;
+: ap-item-505 ap-random-rare-gun to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ "AP: Random Rare Gun!" ap-notify-item ;
+: ap-item-510 
+    ap-random-common-melee to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ 
+    ap-random-common-gun to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ 
+    ap-random-common-melee to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ 
+    "AP: Random Weapons x3" ap-notify-item ;
+: ap-item-511 
+    ap-random-uncommon-gun to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ 
+    ap-random-rare-gun to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ 
+    ap-random-uncommon-melee to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ 
+    ap-random-common-gun to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ 
+    ap-random-common-melee to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ 
+    "AP: Random Armory x5!" ap-notify-item ;
+: ap-item-520 3 WEAPON_MOLOTOV trunk.weapon+ "AP: Molotov x3" ap-notify-item ;
+: ap-item-521 3 WEAPON_GRENADE trunk.weapon+ "AP: Bombs x3" ap-notify-item ;
+: ap-item-522 5 WEAPON_GRENADE trunk.weapon+ "AP: Grenades x5!" ap-notify-item ;
+: ap-item-530 ap-random-legendary to ap-rand-weapon 1 ap-rand-weapon trunk.weapon+ "AP: LEGENDARY WEAPON!" ap-notify-item ;
+
+\ === UTILITY (600s) ===
+\ Car repair - actually restore engine health (capped at max)
+: ap-item-600 
+    car-engine 3 + car-max-engine min to car-engine 
+    car-update-display
+    "AP: Car Parts (+3 Engine)" ap-notify-item 
+;
+: ap-item-601 
+    car-engine 6 + car-max-engine min to car-engine
+    car-chassis 2 + car-max-chassis min to car-chassis
+    car-update-display
+    "AP: Mechanic Kit (+6 Eng, +2 Body)" ap-notify-item 
+;
+: ap-item-622 ' .fullheal foreach-team-char "AP: Full Heal!" ap-notify-item ;
+
+\ === SPECIAL (700s) ===
+: ap-item-700 gstats{ 1 ' zombo-point +! save } "AP: +1 Zombo" ap-notify-item ;
+: ap-item-701 gstats{ 2 ' zombo-point +! save } "AP: +2 Zombo" ap-notify-item ;
+: ap-item-702 gstats{ 5 ' zombo-point +! save } "AP: +5 Zombo!" ap-notify-item ;
+: ap-item-710 10 trunk-food+ 25 trunk-gas+ 10 trunk-bullet+ "AP: Mystery Box!" ap-notify-item ;
+: ap-item-711 morale--all -5 trunk-food+ "AP: Pandora..." ap-notify-item ;
+: ap-item-730 10 trunk-food+ 10 trunk-gas+ 10 trunk-bullet+ 10 trunk-medical+ "AP: Supply Drop!" ap-notify-item ;
+
+\ === SAFE DAMAGE HELPER ===
+\ Skip damage entirely to prevent any deaths from traps
+: ap-safe-ouch ( char -- )
+    drop
+;
+
+\ Apply safe damage to all party members
+: ap-safe-ouch-all
+    \ Do nothing - traps won't deal HP damage
+;
+
+\ === TRAPS ===
+: ap-item-900 -5 trunk-food+ "TRAP: Food Spoiled!" ap-notify-item ;
+: ap-item-901 morale--all morale--all "TRAP: Morale Crisis!" ap-notify-item ;
+: ap-item-902 ap-safe-ouch-all "TRAP: Ambush!" ap-notify-item ;
+: ap-item-903 -25 trunk-gas+ "TRAP: Gas Leak!" ap-notify-item ;
+: ap-item-904 -15 trunk-bullet+ "TRAP: Weapon Jam!" ap-notify-item ;
+: ap-item-905 -10 trunk-food+ -5 trunk-medical+ "TRAP: Thief!" ap-notify-item ;
+: ap-item-906 ap-safe-ouch-all "TRAP: Injury!" ap-notify-item ;
+: ap-item-907 
+    car-engine 3 - 0 max to car-engine 
+    car-update-display
+    "TRAP: Car Damage!" ap-notify-item 
+;
+: ap-item-908 morale--all "TRAP: Argument!" ap-notify-item ;
+: ap-item-909 ap-safe-ouch-all -10 trunk-food+ "TRAP: Bandits!" ap-notify-item ;
+: ap-item-910 morale--all "TRAP: Bad Omen!" ap-notify-item ;
+: ap-item-911 morale--all "TRAP: Bad Weather!" ap-notify-item ;
+: ap-item-912 -10 trunk-bullet+ "TRAP: Gear Lost!" ap-notify-item ;
+: ap-item-913 ap-safe-ouch-all -5 trunk-food+ "TRAP: Food Poison!" ap-notify-item ;
+: ap-item-914 morale--all "TRAP: False Hope!" ap-notify-item ;
+
+\ -----------------------------------------------------------------------------
+\ MODE UNLOCK ITEMS (800-819)
+\ These unlock game modes in the Archipelago menu
+\ -----------------------------------------------------------------------------
+
+: ap-item-800 1 to ap-mode-familiar "MODE UNLOCKED: Familiar Characters!" ap-notify-item ;
+: ap-item-801 1 to ap-mode-rare "MODE UNLOCKED: Rare Characters!" ap-notify-item ;
+: ap-item-802 1 to ap-mode-short "MODE UNLOCKED: Short Trip!" ap-notify-item ;
+: ap-item-803 1 to ap-mode-long "MODE UNLOCKED: Long Road!" ap-notify-item ;
+: ap-item-804 1 to ap-mode-4jerks "MODE UNLOCKED: Four Jerks!" ap-notify-item ;
+: ap-item-805 1 to ap-mode-deadlier "MODE UNLOCKED: Deadlier Road!" ap-notify-item ;
+: ap-item-806 1 to ap-mode-familiarEX "MODE UNLOCKED: Familiar EXTREME!" ap-notify-item ;
+: ap-item-807 1 to ap-mode-rareEX "MODE UNLOCKED: Rare EXTREME!" ap-notify-item ;
+: ap-item-808 1 to ap-mode-marathon "MODE UNLOCKED: Marathon!" ap-notify-item ;
+: ap-item-809 1 to ap-mode-kepa "MODE UNLOCKED: K*E*P*A!" ap-notify-item ;
+: ap-item-810 1 to ap-mode-4jerksEX "MODE UNLOCKED: Four Jerks EXTREME!" ap-notify-item ;
+: ap-item-811 1 to ap-mode-endless "MODE UNLOCKED: Endless!" ap-notify-item ;
+: ap-item-812 1 to ap-mode-opp "MODE UNLOCKED: O*P*P!" ap-notify-item ;
+: ap-item-813 1 to ap-mode-quickdeath "MODE UNLOCKED: Quick Death!" ap-notify-item ;
+: ap-item-814 1 to ap-mode-infection "MODE UNLOCKED: Infection!" ap-notify-item ;
+: ap-item-815 1 to ap-mode-weather "MODE UNLOCKED: Severe Weather!" ap-notify-item ;
+: ap-item-816 1 to ap-mode-rpg "MODE UNLOCKED: RPG Mode!" ap-notify-item ;
+: ap-item-817 1 to ap-mode-scepter "MODE UNLOCKED: Scepter Mode!" ap-notify-item ;
+: ap-item-818 1 to ap-mode-mutation "MODE UNLOCKED: Mutation!" ap-notify-item ;
+: ap-item-819 1 to ap-mode-infectionEX "MODE UNLOCKED: Infection EXTREME!" ap-notify-item ;
+
+\ -----------------------------------------------------------------------------
+\ ITEM DISPATCH
+\ -----------------------------------------------------------------------------
+
+: ap-dispatch
+    \ Basic Resources (100s)
+    ap-cmd "100" $= if ap-item-100 ' ap-items-received ++ then
+    ap-cmd "101" $= if ap-item-101 ' ap-items-received ++ then
+    ap-cmd "102" $= if ap-item-102 ' ap-items-received ++ then
+    ap-cmd "103" $= if ap-item-103 ' ap-items-received ++ then
+    ap-cmd "104" $= if ap-item-104 ' ap-items-received ++ then
+    
+    \ Stat Training (110s)
+    ap-cmd "110" $= if ap-item-110 ' ap-items-received ++ then
+    ap-cmd "111" $= if ap-item-111 ' ap-items-received ++ then
+    ap-cmd "112" $= if ap-item-112 ' ap-items-received ++ then
+    ap-cmd "113" $= if ap-item-113 ' ap-items-received ++ then
+    ap-cmd "114" $= if ap-item-114 ' ap-items-received ++ then
+    ap-cmd "115" $= if ap-item-115 ' ap-items-received ++ then
+    
+    \ Weapons (120s)
+    ap-cmd "120" $= if ap-item-120 ' ap-items-received ++ then
+    ap-cmd "121" $= if ap-item-121 ' ap-items-received ++ then
+    ap-cmd "122" $= if ap-item-122 ' ap-items-received ++ then
+    ap-cmd "123" $= if ap-item-123 ' ap-items-received ++ then
+    ap-cmd "124" $= if ap-item-124 ' ap-items-received ++ then
+    ap-cmd "125" $= if ap-item-125 ' ap-items-received ++ then
+    ap-cmd "126" $= if ap-item-126 ' ap-items-received ++ then
+    ap-cmd "127" $= if ap-item-127 ' ap-items-received ++ then
+    
+    \ Special (130s)
+    ap-cmd "130" $= if ap-item-130 ' ap-items-received ++ then
+    ap-cmd "131" $= if ap-item-131 ' ap-items-received ++ then
+    ap-cmd "132" $= if ap-item-132 ' ap-items-received ++ then
+    
+    \ Progressive Resources (200s)
+    ap-cmd "200" $= if ap-item-200 ' ap-items-received ++ then
+    ap-cmd "201" $= if ap-item-201 ' ap-items-received ++ then
+    ap-cmd "202" $= if ap-item-202 ' ap-items-received ++ then
+    ap-cmd "203" $= if ap-item-203 ' ap-items-received ++ then
+    ap-cmd "210" $= if ap-item-210 ' ap-items-received ++ then
+    ap-cmd "211" $= if ap-item-211 ' ap-items-received ++ then
+    ap-cmd "212" $= if ap-item-212 ' ap-items-received ++ then
+    ap-cmd "213" $= if ap-item-213 ' ap-items-received ++ then
+    ap-cmd "220" $= if ap-item-220 ' ap-items-received ++ then
+    ap-cmd "221" $= if ap-item-221 ' ap-items-received ++ then
+    ap-cmd "222" $= if ap-item-222 ' ap-items-received ++ then
+    ap-cmd "223" $= if ap-item-223 ' ap-items-received ++ then
+    ap-cmd "230" $= if ap-item-230 ' ap-items-received ++ then
+    ap-cmd "231" $= if ap-item-231 ' ap-items-received ++ then
+    ap-cmd "232" $= if ap-item-232 ' ap-items-received ++ then
+    
+    \ Character Upgrades (300s)
+    ap-cmd "300" $= if ap-item-300 ' ap-items-received ++ then
+    ap-cmd "301" $= if ap-item-301 ' ap-items-received ++ then
+    ap-cmd "302" $= if ap-item-302 ' ap-items-received ++ then
+    ap-cmd "303" $= if ap-item-303 ' ap-items-received ++ then
+    ap-cmd "304" $= if ap-item-304 ' ap-items-received ++ then
+    ap-cmd "310" $= if ap-item-310 ' ap-items-received ++ then
+    ap-cmd "311" $= if ap-item-311 ' ap-items-received ++ then
+    ap-cmd "312" $= if ap-item-312 ' ap-items-received ++ then
+    ap-cmd "313" $= if ap-item-313 ' ap-items-received ++ then
+    ap-cmd "314" $= if ap-item-314 ' ap-items-received ++ then
+    ap-cmd "321" $= if ap-item-321 ' ap-items-received ++ then
+    ap-cmd "322" $= if ap-item-322 ' ap-items-received ++ then
+    
+    \ Morale (400s)
+    ap-cmd "400" $= if ap-item-400 ' ap-items-received ++ then
+    ap-cmd "401" $= if ap-item-401 ' ap-items-received ++ then
+    ap-cmd "402" $= if ap-item-402 ' ap-items-received ++ then
+    ap-cmd "403" $= if ap-item-403 ' ap-items-received ++ then
+    ap-cmd "410" $= if ap-item-410 ' ap-items-received ++ then
+    ap-cmd "411" $= if ap-item-411 ' ap-items-received ++ then
+    ap-cmd "412" $= if ap-item-412 ' ap-items-received ++ then
+    
+    \ Random Weapons (500s)
+    ap-cmd "500" $= if ap-item-500 ' ap-items-received ++ then
+    ap-cmd "501" $= if ap-item-501 ' ap-items-received ++ then
+    ap-cmd "502" $= if ap-item-502 ' ap-items-received ++ then
+    ap-cmd "503" $= if ap-item-503 ' ap-items-received ++ then
+    ap-cmd "504" $= if ap-item-504 ' ap-items-received ++ then
+    ap-cmd "505" $= if ap-item-505 ' ap-items-received ++ then
+    ap-cmd "510" $= if ap-item-510 ' ap-items-received ++ then
+    ap-cmd "511" $= if ap-item-511 ' ap-items-received ++ then
+    ap-cmd "520" $= if ap-item-520 ' ap-items-received ++ then
+    ap-cmd "521" $= if ap-item-521 ' ap-items-received ++ then
+    ap-cmd "522" $= if ap-item-522 ' ap-items-received ++ then
+    ap-cmd "530" $= if ap-item-530 ' ap-items-received ++ then
+    
+    \ Utility (600s)
+    ap-cmd "600" $= if ap-item-600 ' ap-items-received ++ then
+    ap-cmd "601" $= if ap-item-601 ' ap-items-received ++ then
+    ap-cmd "622" $= if ap-item-622 ' ap-items-received ++ then
+    
+    \ Special (700s)
+    ap-cmd "700" $= if ap-item-700 ' ap-items-received ++ then
+    ap-cmd "701" $= if ap-item-701 ' ap-items-received ++ then
+    ap-cmd "702" $= if ap-item-702 ' ap-items-received ++ then
+    ap-cmd "710" $= if ap-item-710 ' ap-items-received ++ then
+    ap-cmd "711" $= if ap-item-711 ' ap-items-received ++ then
+    ap-cmd "730" $= if ap-item-730 ' ap-items-received ++ then
+    
+    \ Mode Unlocks (800s)
+    ap-cmd "800" $= if ap-item-800 ' ap-items-received ++ then
+    ap-cmd "801" $= if ap-item-801 ' ap-items-received ++ then
+    ap-cmd "802" $= if ap-item-802 ' ap-items-received ++ then
+    ap-cmd "803" $= if ap-item-803 ' ap-items-received ++ then
+    ap-cmd "804" $= if ap-item-804 ' ap-items-received ++ then
+    ap-cmd "805" $= if ap-item-805 ' ap-items-received ++ then
+    ap-cmd "806" $= if ap-item-806 ' ap-items-received ++ then
+    ap-cmd "807" $= if ap-item-807 ' ap-items-received ++ then
+    ap-cmd "808" $= if ap-item-808 ' ap-items-received ++ then
+    ap-cmd "809" $= if ap-item-809 ' ap-items-received ++ then
+    ap-cmd "810" $= if ap-item-810 ' ap-items-received ++ then
+    ap-cmd "811" $= if ap-item-811 ' ap-items-received ++ then
+    ap-cmd "812" $= if ap-item-812 ' ap-items-received ++ then
+    ap-cmd "813" $= if ap-item-813 ' ap-items-received ++ then
+    ap-cmd "814" $= if ap-item-814 ' ap-items-received ++ then
+    ap-cmd "815" $= if ap-item-815 ' ap-items-received ++ then
+    ap-cmd "816" $= if ap-item-816 ' ap-items-received ++ then
+    ap-cmd "817" $= if ap-item-817 ' ap-items-received ++ then
+    ap-cmd "818" $= if ap-item-818 ' ap-items-received ++ then
+    ap-cmd "819" $= if ap-item-819 ' ap-items-received ++ then
+    
+    \ Traps (900s)
+    ap-cmd "900" $= if ap-item-900 then
+    ap-cmd "901" $= if ap-item-901 then
+    ap-cmd "902" $= if ap-item-902 then
+    ap-cmd "903" $= if ap-item-903 then
+    ap-cmd "904" $= if ap-item-904 then
+    ap-cmd "905" $= if ap-item-905 then
+    ap-cmd "906" $= if ap-item-906 then
+    ap-cmd "907" $= if ap-item-907 then
+    ap-cmd "908" $= if ap-item-908 then
+    ap-cmd "909" $= if ap-item-909 then
+    ap-cmd "910" $= if ap-item-910 then
+    ap-cmd "911" $= if ap-item-911 then
+    ap-cmd "912" $= if ap-item-912 then
+    ap-cmd "913" $= if ap-item-913 then
+    ap-cmd "914" $= if ap-item-914 then
+;
+
+\ -----------------------------------------------------------------------------
+\ FILE I/O
+\ -----------------------------------------------------------------------------
+
+: ap-check-inbox
+    AP_INBOX $sread if
+        to ap-cmd
+        ap-cmd "" $= not if
+            ap-dispatch
+        then
+        "" AP_INBOX $swrite
+    then
+;
+
+: ap-send-check ( id -- )
+    to ap-temp-id
+    \ Append to existing content with comma separator
+    AP_OUTBOX $sread if
+        ($ swap "," .. ap-temp-id .. $) AP_OUTBOX $swrite
+    else
+        ($ "" ap-temp-id .. $) AP_OUTBOX $swrite
+    then
+;
+
+\ -----------------------------------------------------------------------------
+\ DAY START CHECK (on mission start - sends when entering a new day)
+\ -----------------------------------------------------------------------------
+
+0 value ap-victory-sent
+
+\ Note: ap-check-mode-day-start and ap-check-mode-victory are defined after ap-mode-location
+
+: ap-check-day-start
+    road{ road-trip-days } to ap-temp-day
+    ap-temp-day 15 > if 15 to ap-temp-day then
+    ap-temp-day ap-day-last > if
+        ap-temp-day to ap-day-last
+        \ Global day tracking (legacy)
+        ap-day-last 1000 + ap-send-check
+        ($ "Day " ap-day-last .. " Start" .. $) ap-notify
+    then
+;
+
+\ -----------------------------------------------------------------------------
+\ DAY CLEAR CHECK (when day countdown hits 0 / moving to next day)
+\ -----------------------------------------------------------------------------
+
+: ap-check-day-clear
+    road{ road-trip-days } to ap-temp-day
+    ap-temp-day 1 - to ap-temp-day
+    ap-temp-day 15 > if 15 to ap-temp-day then
+    ap-temp-day 0 > if
+        ap-temp-day ap-day-clear-last > if
+            ap-temp-day to ap-day-clear-last
+            \ Global day clear (legacy)
+            ap-day-clear-last 1100 + ap-send-check
+            ($ "Day " ap-day-clear-last .. " Clear" .. $) ap-notify
+        then
+    then
+;
+
+\ -----------------------------------------------------------------------------
+\ VICTORY CHECK
+\ -----------------------------------------------------------------------------
+
+: ap-check-victory
+    \ Only trigger victory if we haven't sent it yet
+    ap-victory-sent not if
+        "VICTORY TRIGGERED!" print
+        \ Global victory (legacy)
+        1020 ap-send-check
+        "CANADA REACHED!" ap-notify
+        "GOAL COMPLETE!" ap-notify
+        \ Write goal completion file for client
+        "1" AP_GOAL $swrite
+        1 to ap-victory-sent
+    then
+;
+
+\ Victory is checked in road-end hook below
+
+\ -----------------------------------------------------------------------------
+\ PER-MODE TRACKING FUNCTIONS
+\ Location ID scheme for per-mode:
+\   Base 10000 + (mode_id * 100) + location_type
+\   mode_id: 0=normal, 1=familiar, 2=rare, 3=short, 4=long, 5=4jerks, 
+\            6=deadlier, 7=familiarEX, 8=rareEX, 9=marathon, 10=kepa,
+\            11=4jerksEX, 12=endless, 13=opp, 14=quickdeath, 15=infection,
+\            16=weather, 17=rpg, 18=scepter, 19=mutation, 20=infectionEX
+\   location_type: 1-30 = day start, 31-60 = mission, 99 = victory
+\ -----------------------------------------------------------------------------
+
+\ Get numeric mode ID for location calculation
+: ap-mode-num
+    gamedef{ ' defaultmode gamemode? } if 0 then;
+    gamedef{ ' familiarchars gamemode? } if 1 then;
+    gamedef{ ' specialchars gamemode? } if 2 then;
+    gamedef{ ' shortroad gamemode? } if 3 then;
+    gamedef{ ' longroad gamemode? } if 4 then;
+    gamedef{ ' 4jerksmode gamemode? } if 5 then;
+    gamedef{ ' deadlier gamemode? } if 6 then;
+    gamedef{ ' familiarcharsEX gamemode? } if 7 then;
+    gamedef{ ' specialcharsEX gamemode? } if 8 then;
+    gamedef{ ' marathonmode gamemode? } if 9 then;
+    gamedef{ ' kepamode gamemode? } if 10 then;
+    gamedef{ ' 4jerksmodeEX gamemode? } if 11 then;
+    gamedef{ ' endlessmode gamemode? } if 12 then;
+    gamedef{ ' OPPmode gamemode? } if 13 then;
+    gamedef{ ' quicknightmare gamemode? } if 14 then;
+    gamedef{ ' theinfection gamemode? } if 15 then;
+    gamedef{ ' weathermode gamemode? } if 16 then;
+    gamedef{ ' thelongsiege gamemode? } if 17 then;
+    gamedef{ ' sceptermode gamemode? } if 18 then;
+    gamedef{ ' mutationmode gamemode? } if 19 then;
+    gamedef{ ' theinfectionEX gamemode? } if 20 then;
+    0
+;
+
+\ Calculate location ID: 10000 + (mode * 100) + offset
+: ap-mode-location ( offset -- location_id )
+    ap-mode-num 100 * 10000 + +
+;
+
+\ Check and update per-mode day tracking
+: ap-check-mode-day-start
+    road{ road-trip-days } to ap-temp-day
+    
+    \ Normal mode
+    gamedef{ ' defaultmode gamemode? } if
+        ap-temp-day ap-normal-days > if
+            ap-temp-day to ap-normal-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Normal] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Familiar mode
+    gamedef{ ' familiarchars gamemode? } if
+        ap-temp-day ap-familiar-days > if
+            ap-temp-day to ap-familiar-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Familiar] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Rare mode
+    gamedef{ ' specialchars gamemode? } if
+        ap-temp-day ap-rare-days > if
+            ap-temp-day to ap-rare-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Rare] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Short mode
+    gamedef{ ' shortroad gamemode? } if
+        ap-temp-day ap-short-days > if
+            ap-temp-day to ap-short-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Short] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Long mode
+    gamedef{ ' longroad gamemode? } if
+        ap-temp-day ap-long-days > if
+            ap-temp-day to ap-long-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Long] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ 4 Jerks mode
+    gamedef{ ' 4jerksmode gamemode? } if
+        ap-temp-day ap-4jerks-days > if
+            ap-temp-day to ap-4jerks-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[4Jerks] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Deadlier mode
+    gamedef{ ' deadlier gamemode? } if
+        ap-temp-day ap-deadlier-days > if
+            ap-temp-day to ap-deadlier-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Deadlier] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Familiar EXTREME mode
+    gamedef{ ' familiarcharsEX gamemode? } if
+        ap-temp-day ap-familiarEX-days > if
+            ap-temp-day to ap-familiarEX-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[FamiliarEX] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Rare EXTREME mode
+    gamedef{ ' specialcharsEX gamemode? } if
+        ap-temp-day ap-rareEX-days > if
+            ap-temp-day to ap-rareEX-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[RareEX] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Marathon mode
+    gamedef{ ' marathonmode gamemode? } if
+        ap-temp-day ap-marathon-days > if
+            ap-temp-day to ap-marathon-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Marathon] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ KEPA mode
+    gamedef{ ' kepamode gamemode? } if
+        ap-temp-day ap-kepa-days > if
+            ap-temp-day to ap-kepa-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[KEPA] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ 4 Jerks EXTREME mode
+    gamedef{ ' 4jerksmodeEX gamemode? } if
+        ap-temp-day ap-4jerksEX-days > if
+            ap-temp-day to ap-4jerksEX-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[4JerksEX] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Endless mode
+    gamedef{ ' endlessmode gamemode? } if
+        ap-temp-day ap-endless-days > if
+            ap-temp-day to ap-endless-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Endless] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ OPP mode
+    gamedef{ ' OPPmode gamemode? } if
+        ap-temp-day ap-opp-days > if
+            ap-temp-day to ap-opp-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[OPP] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Quick Death mode
+    gamedef{ ' quicknightmare gamemode? } if
+        ap-temp-day ap-quickdeath-days > if
+            ap-temp-day to ap-quickdeath-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[QuickDeath] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Infection mode
+    gamedef{ ' theinfection gamemode? } if
+        ap-temp-day ap-infection-days > if
+            ap-temp-day to ap-infection-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Infection] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Weather mode
+    gamedef{ ' weathermode gamemode? } if
+        ap-temp-day ap-weather-days > if
+            ap-temp-day to ap-weather-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Weather] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ RPG mode
+    gamedef{ ' thelongsiege gamemode? } if
+        ap-temp-day ap-rpg-days > if
+            ap-temp-day to ap-rpg-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[RPG] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Scepter mode
+    gamedef{ ' sceptermode gamemode? } if
+        ap-temp-day ap-scepter-days > if
+            ap-temp-day to ap-scepter-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Scepter] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Mutation mode
+    gamedef{ ' mutationmode gamemode? } if
+        ap-temp-day ap-mutation-days > if
+            ap-temp-day to ap-mutation-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[Mutation] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+    
+    \ Infection EXTREME mode
+    gamedef{ ' theinfectionEX gamemode? } if
+        ap-temp-day ap-infectionEX-days > if
+            ap-temp-day to ap-infectionEX-days
+            ap-temp-day ap-mode-location ap-send-check
+            ($ "[InfectionEX] Day " ap-temp-day .. $) ap-notify
+        then
+    then
+;
+
+\ -----------------------------------------------------------------------------
+\ PER-MODE DAY CLEAR CHECK
+\ Location ID: 10000 + (mode_id * 100) + 30 + day (offset 31-60 for day clear)
+\ -----------------------------------------------------------------------------
+
+: ap-check-mode-day-clear
+    road{ road-trip-days } to ap-temp-day
+    ap-temp-day 1 - to ap-temp-day
+    ap-temp-day 0 > if
+        \ Normal mode
+        gamedef{ ' defaultmode gamemode? } if
+            ap-temp-day ap-normal-days-clear > if
+                ap-temp-day to ap-normal-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Normal] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Familiar mode
+        gamedef{ ' familiarchars gamemode? } if
+            ap-temp-day ap-familiar-days-clear > if
+                ap-temp-day to ap-familiar-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Familiar] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Rare mode
+        gamedef{ ' specialchars gamemode? } if
+            ap-temp-day ap-rare-days-clear > if
+                ap-temp-day to ap-rare-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Rare] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Short mode
+        gamedef{ ' shortroad gamemode? } if
+            ap-temp-day ap-short-days-clear > if
+                ap-temp-day to ap-short-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Short] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Long mode
+        gamedef{ ' longroad gamemode? } if
+            ap-temp-day ap-long-days-clear > if
+                ap-temp-day to ap-long-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Long] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ 4 Jerks mode
+        gamedef{ ' 4jerksmode gamemode? } if
+            ap-temp-day ap-4jerks-days-clear > if
+                ap-temp-day to ap-4jerks-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[4Jerks] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Deadlier mode
+        gamedef{ ' deadlier gamemode? } if
+            ap-temp-day ap-deadlier-days-clear > if
+                ap-temp-day to ap-deadlier-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Deadlier] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Familiar EXTREME mode
+        gamedef{ ' familiarcharsEX gamemode? } if
+            ap-temp-day ap-familiarEX-days-clear > if
+                ap-temp-day to ap-familiarEX-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[FamiliarEX] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Rare EXTREME mode
+        gamedef{ ' specialcharsEX gamemode? } if
+            ap-temp-day ap-rareEX-days-clear > if
+                ap-temp-day to ap-rareEX-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[RareEX] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Marathon mode
+        gamedef{ ' marathonmode gamemode? } if
+            ap-temp-day ap-marathon-days-clear > if
+                ap-temp-day to ap-marathon-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Marathon] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ KEPA mode
+        gamedef{ ' kepamode gamemode? } if
+            ap-temp-day ap-kepa-days-clear > if
+                ap-temp-day to ap-kepa-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[KEPA] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Four Jerks EXTREME mode
+        gamedef{ ' 4jerksmodeEX gamemode? } if
+            ap-temp-day ap-4jerksEX-days-clear > if
+                ap-temp-day to ap-4jerksEX-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[4JerksEX] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Endless mode
+        gamedef{ ' endlessmode gamemode? } if
+            ap-temp-day ap-endless-days-clear > if
+                ap-temp-day to ap-endless-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Endless] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ OPP mode
+        gamedef{ ' OPPmode gamemode? } if
+            ap-temp-day ap-opp-days-clear > if
+                ap-temp-day to ap-opp-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[OPP] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Quick Death mode
+        gamedef{ ' quicknightmare gamemode? } if
+            ap-temp-day ap-quickdeath-days-clear > if
+                ap-temp-day to ap-quickdeath-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[QuickDeath] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Infection mode
+        gamedef{ ' theinfection gamemode? } if
+            ap-temp-day ap-infection-days-clear > if
+                ap-temp-day to ap-infection-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Infection] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Weather mode
+        gamedef{ ' weathermode gamemode? } if
+            ap-temp-day ap-weather-days-clear > if
+                ap-temp-day to ap-weather-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Weather] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ RPG mode
+        gamedef{ ' thelongsiege gamemode? } if
+            ap-temp-day ap-rpg-days-clear > if
+                ap-temp-day to ap-rpg-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[RPG] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Scepter mode
+        gamedef{ ' sceptermode gamemode? } if
+            ap-temp-day ap-scepter-days-clear > if
+                ap-temp-day to ap-scepter-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Scepter] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Mutation mode
+        gamedef{ ' mutationmode gamemode? } if
+            ap-temp-day ap-mutation-days-clear > if
+                ap-temp-day to ap-mutation-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[Mutation] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+        
+        \ Infection EXTREME mode
+        gamedef{ ' theinfectionEX gamemode? } if
+            ap-temp-day ap-infectionEX-days-clear > if
+                ap-temp-day to ap-infectionEX-days-clear
+                ap-temp-day 30 + ap-mode-location ap-send-check
+                ($ "[InfectionEX] Day " ap-temp-day .. " Clear" .. $) ap-notify
+            then
+        then
+    then
+;
+
+\ Check and send per-mode victory
+: ap-check-mode-victory
+    \ Victory uses offset 99 within each mode's range
+    
+    gamedef{ ' defaultmode gamemode? } if
+        ap-normal-victory not if
+            1 to ap-normal-victory
+            99 ap-mode-location ap-send-check
+            "[Normal] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' familiarchars gamemode? } if
+        ap-familiar-victory not if
+            1 to ap-familiar-victory
+            99 ap-mode-location ap-send-check
+            "[Familiar] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' specialchars gamemode? } if
+        ap-rare-victory not if
+            1 to ap-rare-victory
+            99 ap-mode-location ap-send-check
+            "[Rare] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' shortroad gamemode? } if
+        ap-short-victory not if
+            1 to ap-short-victory
+            99 ap-mode-location ap-send-check
+            "[Short] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' longroad gamemode? } if
+        ap-long-victory not if
+            1 to ap-long-victory
+            99 ap-mode-location ap-send-check
+            "[Long] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' 4jerksmode gamemode? } if
+        ap-4jerks-victory not if
+            1 to ap-4jerks-victory
+            99 ap-mode-location ap-send-check
+            "[4Jerks] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' deadlier gamemode? } if
+        ap-deadlier-victory not if
+            1 to ap-deadlier-victory
+            99 ap-mode-location ap-send-check
+            "[Deadlier] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' familiarcharsEX gamemode? } if
+        ap-familiarEX-victory not if
+            1 to ap-familiarEX-victory
+            99 ap-mode-location ap-send-check
+            "[FamiliarEX] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' specialcharsEX gamemode? } if
+        ap-rareEX-victory not if
+            1 to ap-rareEX-victory
+            99 ap-mode-location ap-send-check
+            "[RareEX] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' marathonmode gamemode? } if
+        ap-marathon-victory not if
+            1 to ap-marathon-victory
+            99 ap-mode-location ap-send-check
+            "[Marathon] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' kepamode gamemode? } if
+        ap-kepa-victory not if
+            1 to ap-kepa-victory
+            99 ap-mode-location ap-send-check
+            "[KEPA] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' 4jerksmodeEX gamemode? } if
+        ap-4jerksEX-victory not if
+            1 to ap-4jerksEX-victory
+            99 ap-mode-location ap-send-check
+            "[4JerksEX] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' endlessmode gamemode? } if
+        ap-endless-victory not if
+            1 to ap-endless-victory
+            99 ap-mode-location ap-send-check
+            "[Endless] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' OPPmode gamemode? } if
+        ap-opp-victory not if
+            1 to ap-opp-victory
+            99 ap-mode-location ap-send-check
+            "[OPP] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' quicknightmare gamemode? } if
+        ap-quickdeath-victory not if
+            1 to ap-quickdeath-victory
+            99 ap-mode-location ap-send-check
+            "[QuickDeath] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' theinfection gamemode? } if
+        ap-infection-victory not if
+            1 to ap-infection-victory
+            99 ap-mode-location ap-send-check
+            "[Infection] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' weathermode gamemode? } if
+        ap-weather-victory not if
+            1 to ap-weather-victory
+            99 ap-mode-location ap-send-check
+            "[Weather] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' thelongsiege gamemode? } if
+        ap-rpg-victory not if
+            1 to ap-rpg-victory
+            99 ap-mode-location ap-send-check
+            "[RPG] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' sceptermode gamemode? } if
+        ap-scepter-victory not if
+            1 to ap-scepter-victory
+            99 ap-mode-location ap-send-check
+            "[Scepter] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' mutationmode gamemode? } if
+        ap-mutation-victory not if
+            1 to ap-mutation-victory
+            99 ap-mode-location ap-send-check
+            "[Mutation] VICTORY!" ap-notify
+        then
+    then
+    
+    gamedef{ ' theinfectionEX gamemode? } if
+        ap-infectionEX-victory not if
+            1 to ap-infectionEX-victory
+            99 ap-mode-location ap-send-check
+            "[InfectionEX] VICTORY!" ap-notify
+        then
+    then
+;
+
+\ -----------------------------------------------------------------------------
+\ MISSION MILESTONE CHECKS
+\ -----------------------------------------------------------------------------
+
+: ap-check-mission-milestones
+    \ Send check for current location count
+    ap-missions-done ap-missions-last-sent > if
+        ap-missions-done 320 <= if
+            2000 ap-missions-done + ap-send-check
+            ($ "Location " ap-missions-done .. "!" .. $) ap-notify
+            ap-missions-done to ap-missions-last-sent
+        then
+    then
+;
+
+\ -----------------------------------------------------------------------------
+\ KILL MILESTONE CHECKS
+\ -----------------------------------------------------------------------------
+
+: ap-check-kill-milestones
+    \ Calculate cumulative kills: 
+    \ ap-kills-total already includes accumulated kills from this run
+    \ Add only the NEW kills since last accumulation
+    ap-kills-total road{ kills-this-game } + ap-kills-accumulated - to ap-temp-kills
+    \ Check each milestone explicitly - send if reached and not already sent
+    \ Kills 50-1000: IDs 6050-6999 (every 50)
+    \ Kills 1100-11000: IDs 5011-5110 (every 100, ID = 5000 + kills/100)
+    
+    \ === 50-1000 kills (every 50) ===
+    ap-kills-last 50 < if ap-temp-kills 50 >= if 
+        6050 ap-send-check "Kills 50!" ap-notify 50 to ap-kills-last 
+    then then
+    ap-kills-last 100 < if ap-temp-kills 100 >= if 
+        6100 ap-send-check "Kills 100!" ap-notify 100 to ap-kills-last 
+    then then
+    ap-kills-last 150 < if ap-temp-kills 150 >= if 
+        6150 ap-send-check "Kills 150!" ap-notify 150 to ap-kills-last 
+    then then
+    ap-kills-last 200 < if ap-temp-kills 200 >= if 
+        6200 ap-send-check "Kills 200!" ap-notify 200 to ap-kills-last 
+    then then
+    ap-kills-last 250 < if ap-temp-kills 250 >= if 
+        6250 ap-send-check "Kills 250!" ap-notify 250 to ap-kills-last 
+    then then
+    ap-kills-last 300 < if ap-temp-kills 300 >= if 
+        6300 ap-send-check "Kills 300!" ap-notify 300 to ap-kills-last 
+    then then
+    ap-kills-last 350 < if ap-temp-kills 350 >= if 
+        6350 ap-send-check "Kills 350!" ap-notify 350 to ap-kills-last 
+    then then
+    ap-kills-last 400 < if ap-temp-kills 400 >= if 
+        6400 ap-send-check "Kills 400!" ap-notify 400 to ap-kills-last 
+    then then
+    ap-kills-last 450 < if ap-temp-kills 450 >= if 
+        6450 ap-send-check "Kills 450!" ap-notify 450 to ap-kills-last 
+    then then
+    ap-kills-last 500 < if ap-temp-kills 500 >= if 
+        6500 ap-send-check "Kills 500!" ap-notify 500 to ap-kills-last 
+    then then
+    ap-kills-last 550 < if ap-temp-kills 550 >= if 
+        6550 ap-send-check "Kills 550!" ap-notify 550 to ap-kills-last 
+    then then
+    ap-kills-last 600 < if ap-temp-kills 600 >= if 
+        6600 ap-send-check "Kills 600!" ap-notify 600 to ap-kills-last 
+    then then
+    ap-kills-last 650 < if ap-temp-kills 650 >= if 
+        6650 ap-send-check "Kills 650!" ap-notify 650 to ap-kills-last 
+    then then
+    ap-kills-last 700 < if ap-temp-kills 700 >= if 
+        6700 ap-send-check "Kills 700!" ap-notify 700 to ap-kills-last 
+    then then
+    ap-kills-last 750 < if ap-temp-kills 750 >= if 
+        6750 ap-send-check "Kills 750!" ap-notify 750 to ap-kills-last 
+    then then
+    ap-kills-last 800 < if ap-temp-kills 800 >= if 
+        6800 ap-send-check "Kills 800!" ap-notify 800 to ap-kills-last 
+    then then
+    ap-kills-last 850 < if ap-temp-kills 850 >= if 
+        6850 ap-send-check "Kills 850!" ap-notify 850 to ap-kills-last 
+    then then
+    ap-kills-last 900 < if ap-temp-kills 900 >= if 
+        6900 ap-send-check "Kills 900!" ap-notify 900 to ap-kills-last 
+    then then
+    ap-kills-last 950 < if ap-temp-kills 950 >= if 
+        6950 ap-send-check "Kills 950!" ap-notify 950 to ap-kills-last 
+    then then
+    ap-kills-last 1000 < if ap-temp-kills 1000 >= if 
+        6999 ap-send-check "Kills 1000!" ap-notify 1000 to ap-kills-last 
+    then then
+    
+    \ === 1100-11000 kills (every 100) ===
+    \ ID scheme: 5000 + (kills / 100), so 1100=5011, 2000=5020, 10000=5100
+    ap-kills-last 1100 < if ap-temp-kills 1100 >= if 
+        5011 ap-send-check "Kills 1100!" ap-notify 1100 to ap-kills-last 
+    then then
+    ap-kills-last 1200 < if ap-temp-kills 1200 >= if 
+        5012 ap-send-check "Kills 1200!" ap-notify 1200 to ap-kills-last 
+    then then
+    ap-kills-last 1300 < if ap-temp-kills 1300 >= if 
+        5013 ap-send-check "Kills 1300!" ap-notify 1300 to ap-kills-last 
+    then then
+    ap-kills-last 1400 < if ap-temp-kills 1400 >= if 
+        5014 ap-send-check "Kills 1400!" ap-notify 1400 to ap-kills-last 
+    then then
+    ap-kills-last 1500 < if ap-temp-kills 1500 >= if 
+        5015 ap-send-check "Kills 1500!" ap-notify 1500 to ap-kills-last 
+    then then
+    ap-kills-last 1600 < if ap-temp-kills 1600 >= if 
+        5016 ap-send-check "Kills 1600!" ap-notify 1600 to ap-kills-last 
+    then then
+    ap-kills-last 1700 < if ap-temp-kills 1700 >= if 
+        5017 ap-send-check "Kills 1700!" ap-notify 1700 to ap-kills-last 
+    then then
+    ap-kills-last 1800 < if ap-temp-kills 1800 >= if 
+        5018 ap-send-check "Kills 1800!" ap-notify 1800 to ap-kills-last 
+    then then
+    ap-kills-last 1900 < if ap-temp-kills 1900 >= if 
+        5019 ap-send-check "Kills 1900!" ap-notify 1900 to ap-kills-last 
+    then then
+    ap-kills-last 2000 < if ap-temp-kills 2000 >= if 
+        5020 ap-send-check "Kills 2000!" ap-notify 2000 to ap-kills-last 
+    then then
+    ap-kills-last 2100 < if ap-temp-kills 2100 >= if 
+        5021 ap-send-check "Kills 2100!" ap-notify 2100 to ap-kills-last 
+    then then
+    ap-kills-last 2200 < if ap-temp-kills 2200 >= if 
+        5022 ap-send-check "Kills 2200!" ap-notify 2200 to ap-kills-last 
+    then then
+    ap-kills-last 2300 < if ap-temp-kills 2300 >= if 
+        5023 ap-send-check "Kills 2300!" ap-notify 2300 to ap-kills-last 
+    then then
+    ap-kills-last 2400 < if ap-temp-kills 2400 >= if 
+        5024 ap-send-check "Kills 2400!" ap-notify 2400 to ap-kills-last 
+    then then
+    ap-kills-last 2500 < if ap-temp-kills 2500 >= if 
+        5025 ap-send-check "Kills 2500!" ap-notify 2500 to ap-kills-last 
+    then then
+    ap-kills-last 2600 < if ap-temp-kills 2600 >= if 
+        5026 ap-send-check "Kills 2600!" ap-notify 2600 to ap-kills-last 
+    then then
+    ap-kills-last 2700 < if ap-temp-kills 2700 >= if 
+        5027 ap-send-check "Kills 2700!" ap-notify 2700 to ap-kills-last 
+    then then
+    ap-kills-last 2800 < if ap-temp-kills 2800 >= if 
+        5028 ap-send-check "Kills 2800!" ap-notify 2800 to ap-kills-last 
+    then then
+    ap-kills-last 2900 < if ap-temp-kills 2900 >= if 
+        5029 ap-send-check "Kills 2900!" ap-notify 2900 to ap-kills-last 
+    then then
+    ap-kills-last 3000 < if ap-temp-kills 3000 >= if 
+        5030 ap-send-check "Kills 3000!" ap-notify 3000 to ap-kills-last 
+    then then
+    ap-kills-last 3100 < if ap-temp-kills 3100 >= if 
+        5031 ap-send-check "Kills 3100!" ap-notify 3100 to ap-kills-last 
+    then then
+    ap-kills-last 3200 < if ap-temp-kills 3200 >= if 
+        5032 ap-send-check "Kills 3200!" ap-notify 3200 to ap-kills-last 
+    then then
+    ap-kills-last 3300 < if ap-temp-kills 3300 >= if 
+        5033 ap-send-check "Kills 3300!" ap-notify 3300 to ap-kills-last 
+    then then
+    ap-kills-last 3400 < if ap-temp-kills 3400 >= if 
+        5034 ap-send-check "Kills 3400!" ap-notify 3400 to ap-kills-last 
+    then then
+    ap-kills-last 3500 < if ap-temp-kills 3500 >= if 
+        5035 ap-send-check "Kills 3500!" ap-notify 3500 to ap-kills-last 
+    then then
+    ap-kills-last 3600 < if ap-temp-kills 3600 >= if 
+        5036 ap-send-check "Kills 3600!" ap-notify 3600 to ap-kills-last 
+    then then
+    ap-kills-last 3700 < if ap-temp-kills 3700 >= if 
+        5037 ap-send-check "Kills 3700!" ap-notify 3700 to ap-kills-last 
+    then then
+    ap-kills-last 3800 < if ap-temp-kills 3800 >= if 
+        5038 ap-send-check "Kills 3800!" ap-notify 3800 to ap-kills-last 
+    then then
+    ap-kills-last 3900 < if ap-temp-kills 3900 >= if 
+        5039 ap-send-check "Kills 3900!" ap-notify 3900 to ap-kills-last 
+    then then
+    ap-kills-last 4000 < if ap-temp-kills 4000 >= if 
+        5040 ap-send-check "Kills 4000!" ap-notify 4000 to ap-kills-last 
+    then then
+    ap-kills-last 4100 < if ap-temp-kills 4100 >= if 
+        5041 ap-send-check "Kills 4100!" ap-notify 4100 to ap-kills-last 
+    then then
+    ap-kills-last 4200 < if ap-temp-kills 4200 >= if 
+        5042 ap-send-check "Kills 4200!" ap-notify 4200 to ap-kills-last 
+    then then
+    ap-kills-last 4300 < if ap-temp-kills 4300 >= if 
+        5043 ap-send-check "Kills 4300!" ap-notify 4300 to ap-kills-last 
+    then then
+    ap-kills-last 4400 < if ap-temp-kills 4400 >= if 
+        5044 ap-send-check "Kills 4400!" ap-notify 4400 to ap-kills-last 
+    then then
+    ap-kills-last 4500 < if ap-temp-kills 4500 >= if 
+        5045 ap-send-check "Kills 4500!" ap-notify 4500 to ap-kills-last 
+    then then
+    ap-kills-last 4600 < if ap-temp-kills 4600 >= if 
+        5046 ap-send-check "Kills 4600!" ap-notify 4600 to ap-kills-last 
+    then then
+    ap-kills-last 4700 < if ap-temp-kills 4700 >= if 
+        5047 ap-send-check "Kills 4700!" ap-notify 4700 to ap-kills-last 
+    then then
+    ap-kills-last 4800 < if ap-temp-kills 4800 >= if 
+        5048 ap-send-check "Kills 4800!" ap-notify 4800 to ap-kills-last 
+    then then
+    ap-kills-last 4900 < if ap-temp-kills 4900 >= if 
+        5049 ap-send-check "Kills 4900!" ap-notify 4900 to ap-kills-last 
+    then then
+    ap-kills-last 5000 < if ap-temp-kills 5000 >= if 
+        5050 ap-send-check "Kills 5000!" ap-notify 5000 to ap-kills-last 
+    then then
+    ap-kills-last 5100 < if ap-temp-kills 5100 >= if 
+        5051 ap-send-check "Kills 5100!" ap-notify 5100 to ap-kills-last 
+    then then
+    ap-kills-last 5200 < if ap-temp-kills 5200 >= if 
+        5052 ap-send-check "Kills 5200!" ap-notify 5200 to ap-kills-last 
+    then then
+    ap-kills-last 5300 < if ap-temp-kills 5300 >= if 
+        5053 ap-send-check "Kills 5300!" ap-notify 5300 to ap-kills-last 
+    then then
+    ap-kills-last 5400 < if ap-temp-kills 5400 >= if 
+        5054 ap-send-check "Kills 5400!" ap-notify 5400 to ap-kills-last 
+    then then
+    ap-kills-last 5500 < if ap-temp-kills 5500 >= if 
+        5055 ap-send-check "Kills 5500!" ap-notify 5500 to ap-kills-last 
+    then then
+    ap-kills-last 5600 < if ap-temp-kills 5600 >= if 
+        5056 ap-send-check "Kills 5600!" ap-notify 5600 to ap-kills-last 
+    then then
+    ap-kills-last 5700 < if ap-temp-kills 5700 >= if 
+        5057 ap-send-check "Kills 5700!" ap-notify 5700 to ap-kills-last 
+    then then
+    ap-kills-last 5800 < if ap-temp-kills 5800 >= if 
+        5058 ap-send-check "Kills 5800!" ap-notify 5800 to ap-kills-last 
+    then then
+    ap-kills-last 5900 < if ap-temp-kills 5900 >= if 
+        5059 ap-send-check "Kills 5900!" ap-notify 5900 to ap-kills-last 
+    then then
+    ap-kills-last 6000 < if ap-temp-kills 6000 >= if 
+        5060 ap-send-check "Kills 6000!" ap-notify 6000 to ap-kills-last 
+    then then
+    ap-kills-last 6100 < if ap-temp-kills 6100 >= if 
+        5061 ap-send-check "Kills 6100!" ap-notify 6100 to ap-kills-last 
+    then then
+    ap-kills-last 6200 < if ap-temp-kills 6200 >= if 
+        5062 ap-send-check "Kills 6200!" ap-notify 6200 to ap-kills-last 
+    then then
+    ap-kills-last 6300 < if ap-temp-kills 6300 >= if 
+        5063 ap-send-check "Kills 6300!" ap-notify 6300 to ap-kills-last 
+    then then
+    ap-kills-last 6400 < if ap-temp-kills 6400 >= if 
+        5064 ap-send-check "Kills 6400!" ap-notify 6400 to ap-kills-last 
+    then then
+    ap-kills-last 6500 < if ap-temp-kills 6500 >= if 
+        5065 ap-send-check "Kills 6500!" ap-notify 6500 to ap-kills-last 
+    then then
+    ap-kills-last 6600 < if ap-temp-kills 6600 >= if 
+        5066 ap-send-check "Kills 6600!" ap-notify 6600 to ap-kills-last 
+    then then
+    ap-kills-last 6700 < if ap-temp-kills 6700 >= if 
+        5067 ap-send-check "Kills 6700!" ap-notify 6700 to ap-kills-last 
+    then then
+    ap-kills-last 6800 < if ap-temp-kills 6800 >= if 
+        5068 ap-send-check "Kills 6800!" ap-notify 6800 to ap-kills-last 
+    then then
+    ap-kills-last 6900 < if ap-temp-kills 6900 >= if 
+        5069 ap-send-check "Kills 6900!" ap-notify 6900 to ap-kills-last 
+    then then
+    ap-kills-last 7000 < if ap-temp-kills 7000 >= if 
+        5070 ap-send-check "Kills 7000!" ap-notify 7000 to ap-kills-last 
+    then then
+    ap-kills-last 7100 < if ap-temp-kills 7100 >= if 
+        5071 ap-send-check "Kills 7100!" ap-notify 7100 to ap-kills-last 
+    then then
+    ap-kills-last 7200 < if ap-temp-kills 7200 >= if 
+        5072 ap-send-check "Kills 7200!" ap-notify 7200 to ap-kills-last 
+    then then
+    ap-kills-last 7300 < if ap-temp-kills 7300 >= if 
+        5073 ap-send-check "Kills 7300!" ap-notify 7300 to ap-kills-last 
+    then then
+    ap-kills-last 7400 < if ap-temp-kills 7400 >= if 
+        5074 ap-send-check "Kills 7400!" ap-notify 7400 to ap-kills-last 
+    then then
+    ap-kills-last 7500 < if ap-temp-kills 7500 >= if 
+        5075 ap-send-check "Kills 7500!" ap-notify 7500 to ap-kills-last 
+    then then
+    ap-kills-last 7600 < if ap-temp-kills 7600 >= if 
+        5076 ap-send-check "Kills 7600!" ap-notify 7600 to ap-kills-last 
+    then then
+    ap-kills-last 7700 < if ap-temp-kills 7700 >= if 
+        5077 ap-send-check "Kills 7700!" ap-notify 7700 to ap-kills-last 
+    then then
+    ap-kills-last 7800 < if ap-temp-kills 7800 >= if 
+        5078 ap-send-check "Kills 7800!" ap-notify 7800 to ap-kills-last 
+    then then
+    ap-kills-last 7900 < if ap-temp-kills 7900 >= if 
+        5079 ap-send-check "Kills 7900!" ap-notify 7900 to ap-kills-last 
+    then then
+    ap-kills-last 8000 < if ap-temp-kills 8000 >= if 
+        5080 ap-send-check "Kills 8000!" ap-notify 8000 to ap-kills-last 
+    then then
+    ap-kills-last 8100 < if ap-temp-kills 8100 >= if 
+        5081 ap-send-check "Kills 8100!" ap-notify 8100 to ap-kills-last 
+    then then
+    ap-kills-last 8200 < if ap-temp-kills 8200 >= if 
+        5082 ap-send-check "Kills 8200!" ap-notify 8200 to ap-kills-last 
+    then then
+    ap-kills-last 8300 < if ap-temp-kills 8300 >= if 
+        5083 ap-send-check "Kills 8300!" ap-notify 8300 to ap-kills-last 
+    then then
+    ap-kills-last 8400 < if ap-temp-kills 8400 >= if 
+        5084 ap-send-check "Kills 8400!" ap-notify 8400 to ap-kills-last 
+    then then
+    ap-kills-last 8500 < if ap-temp-kills 8500 >= if 
+        5085 ap-send-check "Kills 8500!" ap-notify 8500 to ap-kills-last 
+    then then
+    ap-kills-last 8600 < if ap-temp-kills 8600 >= if 
+        5086 ap-send-check "Kills 8600!" ap-notify 8600 to ap-kills-last 
+    then then
+    ap-kills-last 8700 < if ap-temp-kills 8700 >= if 
+        5087 ap-send-check "Kills 8700!" ap-notify 8700 to ap-kills-last 
+    then then
+    ap-kills-last 8800 < if ap-temp-kills 8800 >= if 
+        5088 ap-send-check "Kills 8800!" ap-notify 8800 to ap-kills-last 
+    then then
+    ap-kills-last 8900 < if ap-temp-kills 8900 >= if 
+        5089 ap-send-check "Kills 8900!" ap-notify 8900 to ap-kills-last 
+    then then
+    ap-kills-last 9000 < if ap-temp-kills 9000 >= if 
+        5090 ap-send-check "Kills 9000!" ap-notify 9000 to ap-kills-last 
+    then then
+    ap-kills-last 9100 < if ap-temp-kills 9100 >= if 
+        5091 ap-send-check "Kills 9100!" ap-notify 9100 to ap-kills-last 
+    then then
+    ap-kills-last 9200 < if ap-temp-kills 9200 >= if 
+        5092 ap-send-check "Kills 9200!" ap-notify 9200 to ap-kills-last 
+    then then
+    ap-kills-last 9300 < if ap-temp-kills 9300 >= if 
+        5093 ap-send-check "Kills 9300!" ap-notify 9300 to ap-kills-last 
+    then then
+    ap-kills-last 9400 < if ap-temp-kills 9400 >= if 
+        5094 ap-send-check "Kills 9400!" ap-notify 9400 to ap-kills-last 
+    then then
+    ap-kills-last 9500 < if ap-temp-kills 9500 >= if 
+        5095 ap-send-check "Kills 9500!" ap-notify 9500 to ap-kills-last 
+    then then
+    ap-kills-last 9600 < if ap-temp-kills 9600 >= if 
+        5096 ap-send-check "Kills 9600!" ap-notify 9600 to ap-kills-last 
+    then then
+    ap-kills-last 9700 < if ap-temp-kills 9700 >= if 
+        5097 ap-send-check "Kills 9700!" ap-notify 9700 to ap-kills-last 
+    then then
+    ap-kills-last 9800 < if ap-temp-kills 9800 >= if 
+        5098 ap-send-check "Kills 9800!" ap-notify 9800 to ap-kills-last 
+    then then
+    ap-kills-last 9900 < if ap-temp-kills 9900 >= if 
+        5099 ap-send-check "Kills 9900!" ap-notify 9900 to ap-kills-last 
+    then then
+    ap-kills-last 10000 < if ap-temp-kills 10000 >= if 
+        5100 ap-send-check "Kills 10000!" ap-notify 10000 to ap-kills-last 
+    then then
+	ap-kills-last 10100 < if ap-temp-kills 10100 >= if 
+		5101 ap-send-check "Kills 10100!" ap-notify 10100 to ap-kills-last 
+	then then
+	ap-kills-last 10200 < if ap-temp-kills 10200 >= if 
+		5102 ap-send-check "Kills 10200!" ap-notify 10200 to ap-kills-last 
+	then then
+	ap-kills-last 10300 < if ap-temp-kills 10300 >= if 
+		5103 ap-send-check "Kills 10300!" ap-notify 10300 to ap-kills-last 
+	then then
+	ap-kills-last 10400 < if ap-temp-kills 10400 >= if 
+		5104 ap-send-check "Kills 10400!" ap-notify 10400 to ap-kills-last 
+	then then
+	ap-kills-last 10500 < if ap-temp-kills 10500 >= if 
+		5105 ap-send-check "Kills 10500!" ap-notify 10500 to ap-kills-last 
+	then then
+	ap-kills-last 10600 < if ap-temp-kills 10600 >= if 
+		5106 ap-send-check "Kills 10600!" ap-notify 10600 to ap-kills-last 
+	then then
+	ap-kills-last 10700 < if ap-temp-kills 10700 >= if 
+		5107 ap-send-check "Kills 10700!" ap-notify 10700 to ap-kills-last 
+	then then
+	ap-kills-last 10800 < if ap-temp-kills 10800 >= if 
+		5108 ap-send-check "Kills 10800!" ap-notify 10800 to ap-kills-last 
+	then then
+	ap-kills-last 10900 < if ap-temp-kills 10900 >= if 
+		5109 ap-send-check "Kills 10900!" ap-notify 10900 to ap-kills-last 
+	then then
+	ap-kills-last 11000 < if ap-temp-kills 11000 >= if 
+		5110 ap-send-check "Kills 11000!" ap-notify 11000 to ap-kills-last 
+	then then
+
+;
+
+\ -----------------------------------------------------------------------------
+\ TOILET MILESTONE CHECKS
+\ -----------------------------------------------------------------------------
+
+: ap-check-toilet-milestones
+    \ Send check for current toilet count (server ignores if location doesn't exist)
+    ap-toilets-opened ap-toilets-last-sent > if
+        ap-toilets-opened 110 <= if
+            7000 ap-toilets-opened + ap-send-check
+            ($ "Toilet " ap-toilets-opened .. "!" .. $) ap-notify
+            ap-toilets-opened to ap-toilets-last-sent
+        then
+    then
+;
+
+\ -----------------------------------------------------------------------------
+\ RECRUIT MILESTONE CHECKS
+\ -----------------------------------------------------------------------------
+
+: ap-check-recruit-milestones
+    \ Send check for current recruit count
+    ap-recruits-done ap-recruits-last-sent > if
+        ap-recruits-done 65 <= if
+            8000 ap-recruits-done + ap-send-check
+            ($ "Recruit " ap-recruits-done .. "!" .. $) ap-notify
+            ap-recruits-done to ap-recruits-last-sent
+        then
+    then
+;
+
+\ -----------------------------------------------------------------------------
+\ CONTAINER LOOT MILESTONE CHECKS
+\ -----------------------------------------------------------------------------
+
+: ap-check-container-milestones
+    \ Send check for current container count
+    ap-containers-looted ap-containers-last-sent > if
+        ap-containers-looted 880 <= if
+            9000 ap-containers-looted + ap-send-check
+            ($ "Container " ap-containers-looted .. "!" .. $) ap-notify
+            ap-containers-looted to ap-containers-last-sent
+        then
+    then
+;
+
+\ -----------------------------------------------------------------------------
+\ SIEGE MILESTONE CHECKS (disabled - too unreliable)
+\ -----------------------------------------------------------------------------
+
+: ap-check-siege-milestones
+    \ Send check for current siege count
+    ap-sieges-done ap-siege-last-sent > if
+        ap-sieges-done 65 <= if
+            3000 ap-sieges-done + ap-send-check
+            ($ "Siege " ap-sieges-done .. "!" .. $) ap-notify
+            ap-sieges-done to ap-siege-last-sent
+        then
+    then
+;
+
+\ -----------------------------------------------------------------------------
+\ WEAPON TRACKING
+\ -----------------------------------------------------------------------------
+
+0 value ap-wep-temp
+
+: ap-count-all-weapons
+    0 to ap-wep-temp
+    weapondef{ WEAPON_COUNT } for
+        i 1- trunk.weapon@ ap-wep-temp + to ap-wep-temp
+    next
+    ap-wep-temp
+;
+
+\ Debug: Print all AP stats (defined here so ap-count-all-weapons exists)
+: ap-print-stats
+    "=== AP Stats ===" print
+    "Kills This Run: " print road{ kills-this-game } print
+    "Kills Previous: " print ap-kills-total print
+    "Kills Cumulative: " print ap-kills-total road{ kills-this-game } + print
+    "Kills Last Sent: " print ap-kills-last print
+    "Weapons This Run: " print ap-weapons-collected print
+    "Weapons Previous: " print ap-weapons-total print
+    "Weapons Cumulative: " print ap-weapons-total ap-weapons-collected + print
+    "Weapons Last Sent: " print ap-weapon-count-last print
+    "Locations Done: " print ap-missions-done print
+    "Containers: " print ap-containers-looted print
+    "Toilets: " print ap-toilets-opened print
+    "Sieges: " print ap-sieges-done print
+    "Recruits: " print ap-recruits-done print
+    "================" print
+;
+
+: ap-check-weapon-categories
+    "CHECKING WEAPONS..." print
+    
+    \ Handguns: Pistol, Snubnose, Uzi, Dolt (confirmed in weaponfilt.df)
+    ap-found-handgun not if
+        WEAPON_PISTOL roadtrip-has-weapon?
+        WEAPON_SNUBNOSE roadtrip-has-weapon? or
+        WEAPON_UZI roadtrip-has-weapon? or
+        WEAPON_DOLT roadtrip-has-weapon? or
+        dup "Has handgun:" print print
+        if 
+            4001 ap-send-check "Found Handgun!" ap-notify 
+            1 to ap-found-handgun 
+        then
+    then
+    
+    \ Rifles: Hunting, Rifle, AK47 (confirmed)
+    ap-found-rifle not if
+        WEAPON_HUNTING roadtrip-has-weapon?
+        WEAPON_RIFLE roadtrip-has-weapon? or
+        WEAPON_AK47 roadtrip-has-weapon? or
+        dup "Has rifle:" print print
+        if 
+            4002 ap-send-check "Found Rifle!" ap-notify 
+            1 to ap-found-rifle 
+        then
+    then
+    
+    \ Shotguns (confirmed)
+    ap-found-shotgun not if
+        WEAPON_SHOTGUN roadtrip-has-weapon?
+        WEAPON_AUTOSHOT roadtrip-has-weapon? or
+        WEAPON_DAWG roadtrip-has-weapon? or
+        dup "Has shotgun:" print print
+        if 
+            4003 ap-send-check "Found Shotgun!" ap-notify 
+            1 to ap-found-shotgun 
+        then
+    then
+    
+    \ Blades: Knives from WEAPON_LIST_KNIVES + hatchet (confirmed)
+    ap-found-blade not if
+        WEAPON_KITCH roadtrip-has-weapon?
+        WEAPON_CLEAVER roadtrip-has-weapon? or
+        WEAPON_MACHETE1 roadtrip-has-weapon? or
+        WEAPON_MACHETE2 roadtrip-has-weapon? or
+        WEAPON_RAMBEUX roadtrip-has-weapon? or
+        WEAPON_HATCHET roadtrip-has-weapon? or
+        dup "Has blade:" print print
+        if 
+            4004 ap-send-check "Found Blade!" ap-notify 
+            1 to ap-found-blade 
+        then
+    then
+    
+    \ Explosives: Grenades, Molotov (confirmed)
+    ap-found-explosive not if
+        WEAPON_GRENADE roadtrip-has-weapon?
+        WEAPON_MOLOTOV roadtrip-has-weapon? or
+        dup "Has explosive:" print print
+        if 
+            4005 ap-send-check "Found Explosive!" ap-notify 
+            1 to ap-found-explosive 
+        then
+    then
+    
+    \ Heavy: Sledge, Fire Axe (confirmed as WEAPON_SLEDGE, WEAPON_FIRE)
+    ap-found-heavy not if
+        WEAPON_SLEDGE roadtrip-has-weapon?
+        WEAPON_FIRE roadtrip-has-weapon? or
+        dup "Has heavy:" print print
+        if 
+            4006 ap-send-check "Found Heavy Weapon!" ap-notify 
+            1 to ap-found-heavy 
+        then
+    then
+    
+    \ Blunt Melee: Bats, clubs, hammers, etc
+    ap-found-blunt not if
+        WEAPON_BASEBALL roadtrip-has-weapon?
+        WEAPON_ALUMINUM roadtrip-has-weapon? or
+        WEAPON_CRICKET roadtrip-has-weapon? or
+        WEAPON_GOLF roadtrip-has-weapon? or
+        WEAPON_HOCKEY roadtrip-has-weapon? or
+        WEAPON_CLAWHAMMER roadtrip-has-weapon? or
+        dup "Has blunt:" print print
+        if 
+            4007 ap-send-check "Found Blunt Weapon!" ap-notify 
+            1 to ap-found-blunt 
+        then
+    then
+;
+
+: ap-check-rare-weapons
+    \ Only check weapons with confirmed constant names
+    ap-found-flamethrower not if WEAPON_FLAMETHROWER roadtrip-has-weapon? if 
+        4102 ap-send-check "Found Flamethrower!" ap-notify 1 to ap-found-flamethrower then then
+    
+    ap-found-minigun not if WEAPON_MINIGUN roadtrip-has-weapon? if 
+        4103 ap-send-check "Found Minigun!" ap-notify 1 to ap-found-minigun then then
+    
+    ap-found-ak47 not if WEAPON_AK47 roadtrip-has-weapon? if 
+        4105 ap-send-check "Found AK-47!" ap-notify 1 to ap-found-ak47 then then
+    
+    ap-found-sledge not if WEAPON_SLEDGE roadtrip-has-weapon? if 
+        4106 ap-send-check "Found Sledgehammer!" ap-notify 1 to ap-found-sledge then then
+    
+    ap-found-fireaxe not if WEAPON_FIRE roadtrip-has-weapon? if 
+        4107 ap-send-check "Found Fire Axe!" ap-notify 1 to ap-found-fireaxe then then
+    
+    ap-found-bow not if WEAPON_BOW roadtrip-has-weapon? if 
+        4109 ap-send-check "Found Bow!" ap-notify 1 to ap-found-bow then then
+;
+
+: ap-check-weapon-count
+    \ Cumulative weapons: total from previous runs + collected this run
+    ap-weapons-total ap-weapons-collected + to ap-wep-temp
+    \ Send ALL milestones from last sent up to current (1-220)
+    begin
+        ap-weapon-count-last 1 + ap-wep-temp <= while
+        ap-weapon-count-last 1 + to ap-weapon-count-last
+        ap-weapon-count-last 220 <= if
+            4200 ap-weapon-count-last + ap-send-check
+            ($ "Weapons " ap-weapon-count-last .. "!" .. $) ap-notify
+        then
+    repeat
+;
+
+: ap-check-weapons
+    ap-game-active not if then;
+    ap-check-weapon-categories
+    ap-check-rare-weapons
+    ap-check-weapon-count
+;
+
+\ -----------------------------------------------------------------------------
+\ PERSISTENT PROGRESS FILE
+\ Saves AP progress that persists across multiple runs/deaths
+\ This file is GLOBAL - shared across all save slots for AP multiworld
+\ -----------------------------------------------------------------------------
+
+\ Use savename-prefix but NO slot number - progress is global across all slots
+: AP_PROGRESS_FILE savename-prefix "ap_progress.sav" .. ;
+
+\ Save cumulative progress to external file
+: ap-save-progress
+    "AP: Saving persistent progress" print
+    save-start
+        \ Global tracking
+        ' ap-kills-total save-val
+        ' ap-kills-accumulated save-val
+        ' ap-weapons-total save-val
+        ' ap-weapons-collected save-val
+        ' ap-toilets-opened save-val
+        ' ap-toilets-last-sent save-val
+        ' ap-recruits-done save-val
+        ' ap-recruits-last-sent save-val
+        ' ap-containers-looted save-val
+        ' ap-containers-last-sent save-val
+        ' ap-sieges-done save-val
+        ' ap-siege-last-sent save-val
+        ' ap-missions-done save-val
+        ' ap-missions-last-sent save-val
+        ' ap-kills-last save-val
+        ' ap-day-last save-val
+        ' ap-day-clear-last save-val
+        ' ap-victory-sent save-val
+        ' ap-found-handgun save-val
+        ' ap-found-rifle save-val
+        ' ap-found-shotgun save-val
+        ' ap-found-blade save-val
+        ' ap-found-explosive save-val
+        ' ap-found-heavy save-val
+        ' ap-found-blunt save-val
+        ' ap-found-flamethrower save-val
+        ' ap-found-minigun save-val
+        ' ap-found-ak47 save-val
+        ' ap-found-sledge save-val
+        ' ap-found-fireaxe save-val
+        ' ap-found-bow save-val
+        ' ap-weapon-count-last save-val
+        ' ap-items-received save-val
+        
+        \ Per-mode tracking - Normal
+        ' ap-normal-missions save-val
+        ' ap-normal-days save-val
+        ' ap-normal-days-clear save-val
+        ' ap-normal-victory save-val
+        
+        \ Per-mode tracking - Familiar
+        ' ap-familiar-missions save-val
+        ' ap-familiar-days save-val
+        ' ap-familiar-days-clear save-val
+        ' ap-familiar-victory save-val
+        
+        \ Per-mode tracking - Rare
+        ' ap-rare-missions save-val
+        ' ap-rare-days save-val
+        ' ap-rare-days-clear save-val
+        ' ap-rare-victory save-val
+        
+        \ Per-mode tracking - Short
+        ' ap-short-missions save-val
+        ' ap-short-days save-val
+        ' ap-short-days-clear save-val
+        ' ap-short-victory save-val
+        
+        \ Per-mode tracking - Long
+        ' ap-long-missions save-val
+        ' ap-long-days save-val
+        ' ap-long-days-clear save-val
+        ' ap-long-victory save-val
+        
+        \ Per-mode tracking - 4Jerks
+        ' ap-4jerks-missions save-val
+        ' ap-4jerks-days save-val
+        ' ap-4jerks-days-clear save-val
+        ' ap-4jerks-victory save-val
+        
+        \ Per-mode tracking - Deadlier
+        ' ap-deadlier-missions save-val
+        ' ap-deadlier-days save-val
+        ' ap-deadlier-days-clear save-val
+        ' ap-deadlier-victory save-val
+        
+        \ Per-mode tracking - FamiliarEX
+        ' ap-familiarEX-missions save-val
+        ' ap-familiarEX-days save-val
+        ' ap-familiarEX-days-clear save-val
+        ' ap-familiarEX-victory save-val
+        
+        \ Per-mode tracking - RareEX
+        ' ap-rareEX-missions save-val
+        ' ap-rareEX-days save-val
+        ' ap-rareEX-days-clear save-val
+        ' ap-rareEX-victory save-val
+        
+        \ Per-mode tracking - Marathon
+        ' ap-marathon-missions save-val
+        ' ap-marathon-days save-val
+        ' ap-marathon-days-clear save-val
+        ' ap-marathon-victory save-val
+        
+        \ Per-mode tracking - KEPA
+        ' ap-kepa-missions save-val
+        ' ap-kepa-days save-val
+        ' ap-kepa-days-clear save-val
+        ' ap-kepa-victory save-val
+        
+        \ Per-mode tracking - 4JerksEX
+        ' ap-4jerksEX-missions save-val
+        ' ap-4jerksEX-days save-val
+        ' ap-4jerksEX-days-clear save-val
+        ' ap-4jerksEX-victory save-val
+        
+        \ Per-mode tracking - Endless
+        ' ap-endless-missions save-val
+        ' ap-endless-days save-val
+        ' ap-endless-days-clear save-val
+        ' ap-endless-victory save-val
+        
+        \ Per-mode tracking - OPP
+        ' ap-opp-missions save-val
+        ' ap-opp-days save-val
+        ' ap-opp-days-clear save-val
+        ' ap-opp-victory save-val
+        
+        \ Per-mode tracking - QuickDeath
+        ' ap-quickdeath-missions save-val
+        ' ap-quickdeath-days save-val
+        ' ap-quickdeath-days-clear save-val
+        ' ap-quickdeath-victory save-val
+        
+        \ Per-mode tracking - Infection
+        ' ap-infection-missions save-val
+        ' ap-infection-days save-val
+        ' ap-infection-days-clear save-val
+        ' ap-infection-victory save-val
+        
+        \ Per-mode tracking - Weather
+        ' ap-weather-missions save-val
+        ' ap-weather-days save-val
+        ' ap-weather-days-clear save-val
+        ' ap-weather-victory save-val
+        
+        \ Per-mode tracking - RPG
+        ' ap-rpg-missions save-val
+        ' ap-rpg-days save-val
+        ' ap-rpg-days-clear save-val
+        ' ap-rpg-victory save-val
+        
+        \ Per-mode tracking - Scepter
+        ' ap-scepter-missions save-val
+        ' ap-scepter-days save-val
+        ' ap-scepter-days-clear save-val
+        ' ap-scepter-victory save-val
+        
+        \ Per-mode tracking - Mutation
+        ' ap-mutation-missions save-val
+        ' ap-mutation-days save-val
+        ' ap-mutation-days-clear save-val
+        ' ap-mutation-victory save-val
+        
+        \ Per-mode tracking - InfectionEX
+        ' ap-infectionEX-missions save-val
+        ' ap-infectionEX-days save-val
+        ' ap-infectionEX-days-clear save-val
+        ' ap-infectionEX-victory save-val
+        
+        \ Mode unlock flags
+        ' ap-mode-familiar save-val
+        ' ap-mode-rare save-val
+        ' ap-mode-short save-val
+        ' ap-mode-long save-val
+        ' ap-mode-4jerks save-val
+        ' ap-mode-deadlier save-val
+        ' ap-mode-familiarEX save-val
+        ' ap-mode-rareEX save-val
+        ' ap-mode-marathon save-val
+        ' ap-mode-kepa save-val
+        ' ap-mode-4jerksEX save-val
+        ' ap-mode-endless save-val
+        ' ap-mode-opp save-val
+        ' ap-mode-quickdeath save-val
+        ' ap-mode-infection save-val
+        ' ap-mode-weather save-val
+        ' ap-mode-rpg save-val
+        ' ap-mode-scepter save-val
+        ' ap-mode-mutation save-val
+        ' ap-mode-infectionEX save-val
+    save-end
+    AP_PROGRESS_FILE $strbuf-write
+;
+
+\ Load cumulative progress from external file
+: ap-load-progress
+    "AP: Loading persistent progress" print
+    AP_PROGRESS_FILE filesave{ $load-savefile }
+;
+
+\ -----------------------------------------------------------------------------
+\ CATCH-UP FUNCTIONS
+\ Use these to recover missed milestones without resetting progress
+\ Run from console while connected to Archipelago
+\ Run ONE catch-up at a time and wait for client to process before next
+\ -----------------------------------------------------------------------------
+
+\ Catch-up recruits (1-20, IDs 8001-8020)
+: ap-catchup-recruits
+    "Catching up recruit milestones..." print
+    ap-recruits-done 20 min to ap-temp-kills
+    ap-recruits-last-sent ap-temp-kills < if
+        ap-recruits-last-sent 1 + to ap-recruits-last-sent
+        8000 ap-recruits-last-sent + ap-send-check
+        "Sent recruit: " print ap-recruits-last-sent print
+        ap-save-progress
+    else
+        "Nothing to catch up!" print
+    then
+;
+
+\ Catch-up toilets (1-100, IDs 7001-7100)
+: ap-catchup-toilets
+    "Catching up toilet milestones..." print
+    ap-toilets-opened 100 min to ap-temp-kills
+    ap-toilets-last-sent ap-temp-kills < if
+        ap-toilets-last-sent 1 + to ap-toilets-last-sent
+        7000 ap-toilets-last-sent + ap-send-check
+        "Sent toilet: " print ap-toilets-last-sent print
+        ap-save-progress
+    else
+        "Nothing to catch up!" print
+    then
+;
+
+\ Catch-up containers (1-300, IDs 9001-9300)
+: ap-catchup-containers
+    "Catching up container milestones..." print
+    ap-containers-looted 300 min to ap-temp-kills
+    ap-containers-last-sent ap-temp-kills < if
+        ap-containers-last-sent 1 + to ap-containers-last-sent
+        9000 ap-containers-last-sent + ap-send-check
+        "Sent container: " print ap-containers-last-sent print
+        ap-save-progress
+    else
+        "Nothing to catch up!" print
+    then
+;
+
+\ Catch-up sieges (1-20, IDs 3001-3020)
+: ap-catchup-sieges
+    "Catching up siege milestones..." print
+    ap-sieges-done 20 min to ap-temp-kills
+    ap-siege-last-sent ap-temp-kills < if
+        ap-siege-last-sent 1 + to ap-siege-last-sent
+        3000 ap-siege-last-sent + ap-send-check
+        "Sent siege: " print ap-siege-last-sent print
+        ap-save-progress
+    else
+        "Nothing to catch up!" print
+    then
+;
+
+\ Catch-up weapons (1-100, IDs 4201-4300)
+: ap-catchup-weapons
+    "Catching up weapon milestones..." print
+    ap-weapons-total ap-weapons-collected + 100 min to ap-temp-kills
+    ap-weapon-count-last ap-temp-kills < if
+        ap-weapon-count-last 1 + to ap-weapon-count-last
+        4200 ap-weapon-count-last + ap-send-check
+        "Sent weapon: " print ap-weapon-count-last print
+        ap-save-progress
+    else
+        "Nothing to catch up!" print
+    then
+;
+
+\ Catch-up kills - handles both phases
+: ap-catchup-kills
+    "Catching up kill milestones..." print
+    ap-kills-total road{ kills-this-game } + ap-kills-accumulated - to ap-temp-kills
+    "Current kills: " print ap-temp-kills print
+    "Last sent: " print ap-kills-last print
+    
+    0 to ap-temp-id  \ Flag: did we send something?
+    
+    \ Phase 1: 50-950 (every 50) - IDs 6050-6950
+    ap-kills-last 950 < if
+        ap-kills-last 50 + ap-temp-kills <= if
+            ap-kills-last 50 + to ap-kills-last
+            6000 ap-kills-last + ap-send-check
+            "Sent kill milestone: " print ap-kills-last print
+            ap-save-progress
+            1 to ap-temp-id
+        then
+    then
+    
+    \ Special: 1000 kills - ID 6999
+    ap-temp-id 0 = if
+        ap-kills-last 950 = if
+            ap-temp-kills 1000 >= if
+                1000 to ap-kills-last
+                6999 ap-send-check
+                "Sent kill milestone: 1000" print
+                ap-save-progress
+                1 to ap-temp-id
+            then
+        then
+    then
+    
+    \ Phase 2: 1100-10000 (every 100) - IDs 5011-5100
+    ap-temp-id 0 = if
+        ap-kills-last 1000 >= if
+            ap-kills-last 10000 < if
+                ap-kills-last 100 + ap-temp-kills <= if
+                    ap-kills-last 100 + to ap-kills-last
+                    5000 ap-kills-last 100 / + ap-send-check
+                    "Sent kill milestone: " print ap-kills-last print
+                    ap-save-progress
+                    1 to ap-temp-id
+                then
+            then
+        then
+    then
+    
+    ap-temp-id 0 = if
+        "Nothing to catch up!" print
+    then
+;
+
+\ Info command
+: ap-catchup-all
+    "=== CATCH-UP COMMANDS ===" print
+    "Run these ONE AT A TIME, waiting for client to process each:" print
+    "" print
+    "  ap-catchup-recruits   - Sends 1 recruit milestone" print
+    "  ap-catchup-toilets    - Sends 1 toilet milestone" print
+    "  ap-catchup-containers - Sends 1 container milestone" print  
+    "  ap-catchup-sieges     - Sends 1 siege milestone" print
+    "  ap-catchup-weapons    - Sends 1 weapon milestone" print
+    "  ap-catchup-kills      - Sends 1 kill milestone" print
+    "" print
+    "Keep running each command until it says 'Nothing to catch up'" print
+    "======================================" print
+;
+
+\ Reset progress file (for starting fresh AP seed)
+: ap-reset-progress
+    "AP: Resetting ALL persistent progress!" print
+    
+    \ Global tracking
+    0 to ap-kills-total
+    0 to ap-kills-accumulated
+    0 to ap-weapons-total
+    0 to ap-weapons-collected
+    0 to ap-toilets-opened
+    0 to ap-toilets-last-sent
+    0 to ap-recruits-done
+    0 to ap-recruits-last-sent
+    0 to ap-containers-looted
+    0 to ap-containers-last-sent
+    0 to ap-sieges-done
+    0 to ap-siege-last-sent
+    0 to ap-missions-done
+    0 to ap-missions-last-sent
+    0 to ap-kills-last
+    0 to ap-day-last
+    0 to ap-day-clear-last
+    0 to ap-victory-sent
+    0 to ap-found-handgun
+    0 to ap-found-rifle
+    0 to ap-found-shotgun
+    0 to ap-found-blade
+    0 to ap-found-explosive
+    0 to ap-found-heavy
+    0 to ap-found-blunt
+    0 to ap-found-flamethrower
+    0 to ap-found-minigun
+    0 to ap-found-ak47
+    0 to ap-found-sledge
+    0 to ap-found-fireaxe
+    0 to ap-found-bow
+    0 to ap-weapon-count-last
+    0 to ap-items-received
+    
+    \ Per-mode tracking reset
+    0 to ap-normal-missions  0 to ap-normal-days  0 to ap-normal-days-clear  0 to ap-normal-victory
+    0 to ap-familiar-missions  0 to ap-familiar-days  0 to ap-familiar-days-clear  0 to ap-familiar-victory
+    0 to ap-rare-missions  0 to ap-rare-days  0 to ap-rare-days-clear  0 to ap-rare-victory
+    0 to ap-short-missions  0 to ap-short-days  0 to ap-short-days-clear  0 to ap-short-victory
+    0 to ap-long-missions  0 to ap-long-days  0 to ap-long-days-clear  0 to ap-long-victory
+    0 to ap-4jerks-missions  0 to ap-4jerks-days  0 to ap-4jerks-days-clear  0 to ap-4jerks-victory
+    0 to ap-deadlier-missions  0 to ap-deadlier-days  0 to ap-deadlier-days-clear  0 to ap-deadlier-victory
+    0 to ap-familiarEX-missions  0 to ap-familiarEX-days  0 to ap-familiarEX-days-clear  0 to ap-familiarEX-victory
+    0 to ap-rareEX-missions  0 to ap-rareEX-days  0 to ap-rareEX-days-clear  0 to ap-rareEX-victory
+    0 to ap-marathon-missions  0 to ap-marathon-days  0 to ap-marathon-days-clear  0 to ap-marathon-victory
+    0 to ap-kepa-missions  0 to ap-kepa-days  0 to ap-kepa-days-clear  0 to ap-kepa-victory
+    0 to ap-4jerksEX-missions  0 to ap-4jerksEX-days  0 to ap-4jerksEX-days-clear  0 to ap-4jerksEX-victory
+    0 to ap-endless-missions  0 to ap-endless-days  0 to ap-endless-days-clear  0 to ap-endless-victory
+    0 to ap-opp-missions  0 to ap-opp-days  0 to ap-opp-days-clear  0 to ap-opp-victory
+    0 to ap-quickdeath-missions  0 to ap-quickdeath-days  0 to ap-quickdeath-days-clear  0 to ap-quickdeath-victory
+    0 to ap-infection-missions  0 to ap-infection-days  0 to ap-infection-days-clear  0 to ap-infection-victory
+    0 to ap-weather-missions  0 to ap-weather-days  0 to ap-weather-days-clear  0 to ap-weather-victory
+    0 to ap-rpg-missions  0 to ap-rpg-days  0 to ap-rpg-days-clear  0 to ap-rpg-victory
+    0 to ap-scepter-missions  0 to ap-scepter-days  0 to ap-scepter-days-clear  0 to ap-scepter-victory
+    0 to ap-mutation-missions  0 to ap-mutation-days  0 to ap-mutation-days-clear  0 to ap-mutation-victory
+    0 to ap-infectionEX-missions  0 to ap-infectionEX-days  0 to ap-infectionEX-days-clear  0 to ap-infectionEX-victory
+    
+    \ Mode unlock flags reset
+    0 to ap-mode-familiar
+    0 to ap-mode-rare
+    0 to ap-mode-short
+    0 to ap-mode-long
+    0 to ap-mode-4jerks
+    0 to ap-mode-deadlier
+    0 to ap-mode-familiarEX
+    0 to ap-mode-rareEX
+    0 to ap-mode-marathon
+    0 to ap-mode-kepa
+    0 to ap-mode-4jerksEX
+    0 to ap-mode-endless
+    0 to ap-mode-opp
+    0 to ap-mode-quickdeath
+    0 to ap-mode-infection
+    0 to ap-mode-weather
+    0 to ap-mode-rpg
+    0 to ap-mode-scepter
+    0 to ap-mode-mutation
+    0 to ap-mode-infectionEX
+    
+    "" AP_OUTBOX $swrite
+    ap-save-progress
+    
+    \ Refresh mode menu to show all modes locked
+    gamedef{ modedefs }
+    "AP: Progress reset complete. Restart game to see locked modes." print
+;
+
+\ Reset state for new session (preserves cumulative progress)
+\ NOTE: This is now handled by ap-hook-new-session. This function is for manual console use.
+: ap-reset-all
+    "AP: Manual reset - preserving cumulative progress" print
+    \ NOTE: Kill accumulation now happens in ap-force-save
+    \ Just reset per-run tracking here
+    0 to ap-kills-accumulated
+    \ Add this run's weapons to cumulative total and reset for new run
+    ap-weapons-collected ap-weapons-total + to ap-weapons-total
+    "Weapons from last run added. Total weapons now: " print ap-weapons-total print
+    0 to ap-weapons-collected
+    \ Save updated totals
+    ap-save-progress
+    \ Reset per-run state only
+    0 to ap-in-siege
+    0 to ap-siege-last-day
+    "" AP_OUTBOX $swrite
+;
+
+\ -----------------------------------------------------------------------------
+\ EVENT HOOKS
+\ -----------------------------------------------------------------------------
+
+: ap-hook-mission-start amend main-event-mission-start
+    ap-game-active not if then;
+    "MISSION-START - day:" print road{ road-trip-days } print
+    ap-check-day-start
+    ap-check-mode-day-start
+    ap-check-inbox
+    \ Set flag - will be cleared by mission-end if it fires
+    1 to ap-in-siege
+;
+last to main-event-mission-start
+
+: ap-hook-mission-end amend main-event-mission-end
+    ap-game-active not if then;
+    ' ap-missions-done ++
+    ap-print-stats
+    ap-check-mission-milestones
+    ap-check-kill-milestones
+    ap-check-weapons
+    \ Clear flag - this means it was NOT a siege
+    0 to ap-in-siege
+;
+last to main-event-mission-end
+
+: ap-hook-road-resume amend main-event-road-resume
+    ap-game-active not if then;
+    "ROAD-RESUME - day=" print road{ road-trip-days } print
+    \ Force saveslot to 1 for Archipelago saves
+    1 saveslot!
+    \ Check for day clear (we just finished a day)
+    ap-check-day-clear
+    ap-check-mode-day-clear
+    \ Check weapons on road return too
+    ap-check-weapons
+    \ Check kills in case mission-end didn't catch them
+    ap-check-kill-milestones
+    \ Check for items when returning to road
+    ap-check-inbox
+    \ Force game save - ap-save-progress happens inside ap-force-save AFTER game data is written
+    need-to-save
+;
+last to main-event-road-resume
+
+\ Hook periodic - fires regularly during missions for item delivery
+: ap-hook-mission-periodic amend main-event-mission-periodic
+    ap-game-active not if then;
+    ap-check-inbox
+;
+last to main-event-mission-periodic
+
+\ Hook road periodic - fires regularly on road map
+: ap-hook-road-periodic amend main-event-road-periodic
+    ap-game-active not if then;
+    ap-check-inbox
+;
+last to main-event-road-periodic
+
+: ap-hook-road-start amend main-event-road-start
+    "ROAD-START FIRED" print
+    \ Only activate AP in slot 1 games (not unlocks menu which uses slot 0)
+    saveslot 1 = if
+        1 to ap-game-active
+        "ARCHIPELAGO ACTIVE" ap-notify
+    then
+;
+last to main-event-road-start
+
+: ap-hook-road-end amend main-event-road-end
+    "ROAD-END" print
+    0 to ap-game-active
+;
+last to main-event-road-end
+
+\ -----------------------------------------------------------------------------
+\ ENHANCED TOILET LOOT - Higher chance for toilets to have loot
+\ -----------------------------------------------------------------------------
+
+\ Toilet loot contents based on gnome upgrade level
+: ap-toilet-loot-contents
+    gstats{ ugnome-toilet }
+    case
+        0 of 1 LOOT_GAS endof              \ Base: 1 gas
+        1 of 2 LOOT_GAS endof              \ Upgrade 1: 2 gas  
+        2 of 2 LOOT_BULLET endof           \ Upgrade 2: 2 bullets
+        3 of 1 2 rnd LOOT_BULLET endof     \ Upgrade 3: 1-2 bullets
+        otherwise 1 2 rnd LOOT_BULLET      \ Upgrade 4: same as 3
+    endcase
+    loot! amount!
+;
+
+\ Loot chance based on gnome upgrade level (much higher than vanilla!)
+: ap-toilet-loot-chance
+    gstats{ ugnome-toilet }
+    case
+        0 of 40 endof    \ Base: 40% (was 20%)
+        1 of 50 endof    \ Upgrade 1: 50%
+        2 of 60 endof    \ Upgrade 2: 60%
+        3 of 75 endof    \ Upgrade 3: 75% (was 30%)
+        otherwise 90     \ Upgrade 4: 90%
+    endcase
+;
+
+\ Override the toilet word to include better loot chance
+: toilet
+    spawn
+    0x 1a themed spriteid!
+    bbox
+    swolebolt-
+    openable container ' toilet-loot action!
+    15 health!
+    rnd5050 if 1 lt .flies! then
+    ' breakpipe-event events!
+    \ NEW: Apply loot with enhanced chance
+    ap-toilet-loot-chance %chance if
+        ap-toilet-loot-contents
+    then
+;
+
+\ -----------------------------------------------------------------------------
+\ TOILET HOOK - fires when player loots a toilet
+\ -----------------------------------------------------------------------------
+
+: ap-hook-toilet-loot amend on-toilet-loot
+    ap-game-active if
+        ' ap-toilets-opened ++
+        "TOILET OPENED! Total:" print ap-toilets-opened print
+        ap-check-toilet-milestones
+    then
+;
+last to on-toilet-loot
+
+\ -----------------------------------------------------------------------------
+\ RECRUIT HOOK - fires when player recruits a character
+\ -----------------------------------------------------------------------------
+
+: ap-hook-recruited amend on-recruited
+    ap-game-active if
+        ' ap-recruits-done ++
+        "RECRUIT! Total:" print ap-recruits-done print
+        ap-check-recruit-milestones
+    then
+;
+last to on-recruited
+
+\ -----------------------------------------------------------------------------
+\ CONTAINER LOOT HOOK - fires when player loots any container
+\ -----------------------------------------------------------------------------
+
+: ap-hook-container-loot amend on-container-loot
+    ap-game-active if
+        ' ap-containers-looted ++
+        "CONTAINER LOOTED! Total:" print ap-containers-looted print
+        ap-check-container-milestones
+    then
+;
+last to on-container-loot
+
+\ -----------------------------------------------------------------------------
+\ VICTORY HOOK - fires when player wins the game
+\ -----------------------------------------------------------------------------
+
+: ap-hook-victory amend on-victory
+    "AP: VICTORY - on-victory fired!" print
+    ap-check-victory
+    ap-check-mode-victory
+;
+last to on-victory
+
+\ -----------------------------------------------------------------------------
+\ SIEGE COMPLETE HOOK - fires when player survives a siege
+\ -----------------------------------------------------------------------------
+
+: ap-hook-siege-complete amend on-siege-complete
+    ap-game-active if
+        ' ap-sieges-done ++
+        "SIEGE COMPLETE! Total:" print ap-sieges-done print
+        ap-check-siege-milestones
+    then
+;
+last to on-siege-complete
+
+\ -----------------------------------------------------------------------------
+\ SAVE HOOK - only save to persistent file, NOT to game saves
+\ This prevents old saves from overwriting newer progress
+\ -----------------------------------------------------------------------------
+\ NOTE: We do NOT hook on-dumpstate because it runs BEFORE save-slot-data
+\ and would corrupt the save buffer. AP progress is saved AFTER game save
+\ in ap-force-save.
+\ -----------------------------------------------------------------------------
+
+\ -----------------------------------------------------------------------------
+\ NEW SESSION HOOK - fires when starting new game
+\ -----------------------------------------------------------------------------
+
+: ap-hook-new-session amend main-event-new-session
+    "AP: New session started" print
+    \ Only do AP stuff if we're in slot 1
+    saveslot 1 = not if then;
+    \ NOTE: Kill accumulation now happens in ap-force-save before saving
+    \ This prevents losing kills when road{ kills-this-game } resets
+    
+    \ Reset per-run tracking for new run
+    0 to ap-kills-accumulated  \ New run starts with 0 kills
+    
+    \ Add this run's weapons to cumulative total and reset for new run
+    ap-weapons-collected ap-weapons-total + to ap-weapons-total
+    0 to ap-weapons-collected
+    \ Save updated totals
+    ap-save-progress
+    \ Reset per-run state
+    0 to ap-in-siege
+    0 to ap-siege-last-day
+    "" AP_OUTBOX $swrite
+;
+last to main-event-new-session
+
+\ -----------------------------------------------------------------------------
+\ LOAD HOOK - fires after loading a game save
+\ Reload from persistent file to restore correct progress
+\ -----------------------------------------------------------------------------
+
+\ Force slot 1 for loading - use the original game-load-continue which handles filesave vocabulary correctly
+: ap-game-load-continue
+    "AP: === LOADING GAME ===" print
+    1 saveslot!
+    filesave{ game-load-continue }
+    team-count if
+        "AP: Load successful! Team size:" print team-count print
+        ap-load-progress
+        1 to ap-game-active
+        "AP: --- ARCHIPELAGO STATS ---" print
+        "  Kills (total):" print ap-kills-total print
+        "  Kills (accumulated this run):" print ap-kills-accumulated print
+        "  Containers:" print ap-containers-looted print
+        "  Toilets:" print ap-toilets-opened print
+        "  Sieges:" print ap-sieges-done print
+        "  Recruits:" print ap-recruits-done print
+        "  Missions:" print ap-missions-done print
+        "  Items received:" print ap-items-received print
+        "AP: --------------------------" print
+    then
+;
+' ap-game-load-continue to main-event-do-load
+
+\ -----------------------------------------------------------------------------
+\ FORCE SLOT 1 FOR ALL SAVES
+\ Override save-the-game to always use slot 1 for Archipelago
+\ -----------------------------------------------------------------------------
+
+: ap-force-save
+    "AP: === SAVING GAME ===" print
+    1 saveslot!
+    filesave{ 
+        save-slot-info
+        save-start
+            dumpchars
+            dumpgame
+            dumpstate
+        save-end
+        save-slot-data
+        save-global-stats 
+    }
+    "AP: Game saved to slot 1" print
+    \ ACCUMULATE KILLS: Add new kills from this run to total before saving
+    road{ kills-this-game } ap-kills-accumulated > if
+        road{ kills-this-game } ap-kills-accumulated - ap-kills-total + to ap-kills-total
+        road{ kills-this-game } to ap-kills-accumulated
+        "AP: Accumulated kills to total" print
+    then
+    ap-save-progress
+    "AP: --- ARCHIPELAGO STATS ---" print
+    "  Kills this run:" print road{ kills-this-game } print
+    "  Kills accumulated:" print ap-kills-accumulated print
+    "  Kills (total):" print ap-kills-total print
+    "  Containers:" print ap-containers-looted print
+    "  Toilets:" print ap-toilets-opened print
+    "  Sieges:" print ap-sieges-done print
+    "  Recruits:" print ap-recruits-done print
+    "  Missions:" print ap-missions-done print
+    "  Items received:" print ap-items-received print
+    "AP: === SAVE COMPLETE ===" print
+;
+' ap-force-save to save-the-game
+
+\ -----------------------------------------------------------------------------
+\ INITIALIZATION
+\ -----------------------------------------------------------------------------
+
+"" AP_INBOX $swrite
+"" AP_OUTBOX $swrite
+
+\ Try to load persistent progress on mod load
+ap-load-progress
+
+"Archipelago mod v3.6 loaded" print
+"  - Use the ARCHIPELAGO menu option!" print
+"  - Progress persists across deaths" print
+"  - Kill tracking now persists properly!" print
+"  - Type 'ap-reset-progress' in console to start fresh" print
+
+\ -----------------------------------------------------------------------------
+\ GAME MODE UNLOCKS - Override modedefs to use our AP unlock flags
+\ Variables are defined at top of file, this just overrides the mode menu
+\ -----------------------------------------------------------------------------
+
+\ Override modedefs to use our AP unlock flags
+gamedef{
+: modedefs init
+    \ Check for items whenever mode menu is shown (loop to process multiple pending items)
+    25 for ap-check-inbox next
+    \ Save progress after processing items (to persist mode unlocks)
+    ap-save-progress
+    
+    ($ "Death Road Normal Mode" .. WINSNORM $) $mode
+        ($ "The normal, default game mode.
+        Get your skis, pack a toque... we're going to CANADA!
+        Most road recruits you find will be random, but sometimes you'll be more lucky." $) $desc
+        MODE_ICONS 0 + icon
+        ' defaultmode applyword
+        
+    ($ "Familiar Characters Mode" .. WINSFAM $) $mode
+        "Most road recruits you meet are now familiar characters, instead of random!
+        These are characters that you've created and saved. Make your friends and family, and they'll show up in the game!" $desc
+        MODE_ICONS 0x 8 + icon
+        ' familiarchars applyword
+        ap-mode-familiar not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+    
+    ($ "Rare Characters Mode" .. WINSRARE $) $mode
+        "Most road recruits you meet are now special characters with unique abilities!
+        This usually can make things a little easier.
+        But not always." $desc
+        MODE_ICONS 0x 3 + icon
+        ' specialchars applyword
+        ap-mode-rare not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "Short Trip to Heck Mode" .. WINSSHORT $) $mode
+        "For impatient people that want a risky shortcut!
+        It takes 9 driving days to get to Canada, rather than the default 15 days.
+        Be careful, this means less days to prepare for the end!" $desc
+        MODE_ICONS 0x 1 + icon
+        ' shortroad applyword
+        ap-mode-short not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "Long Winding Road Mode" .. WINSLONG $) $mode
+        "For people that like to chill and take it easy.
+        It takes 25 driving days to get to Canada, rather than the usual 15 days.
+        Difficulty progression starts the same, but gets higher! At least you get more time to prepare." $desc
+        MODE_ICONS 0x 2 + icon
+        ' longroad applyword
+        ap-mode-long not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+
+    ($ "Four Jerks Mode" .. WINS4JERKS $) $mode
+        "Start with up to 4 people, if you made Custom Characters!
+        Made for 4 player co-op, or if you just want a full car at start.
+        In exchange, about 15% more zombies will spawn." $desc
+        MODE_ICONS 0x 5 + icon
+        ' 4jerksmode applyword
+        ap-mode-4jerks not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "Deadlier Road Mode" .. WINSDEADLY $) $mode
+        "30% more danger! 30% more excitement!
+        About 30% more zombies.
+        Bandits are more cruel." $desc
+        MODE_ICONS 0x 4 + icon
+        ' deadlier applyword
+        ap-mode-deadlier not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "Familiar " .. RAINBOW .. "EXTREME" .. WHITE .. WINSFAMEX $) $mode
+        "Most recruits you meet are familiar characters!
+        Make sure your custom characters are strong and work together well, because they will be facing 60% more the usual amount of zombies.
+        Bandits are more cruel." $desc
+        MODE_ICONS 0x a + icon
+        ' familiarcharsEX applyword
+        ap-mode-familiarEX not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+                
+    ($ "Rare " .. RAINBOW .. "EXTREME" .. WHITE .. WINSRAREEX $) $mode
+        "Most recruits you meet are special characters!
+        This is combined with the amount of zombies set to 60% more than usual. Can the unique characters you find survive gigantic walls of undead?
+        Bandits are more cruel." $desc
+        MODE_ICONS 0x 6 + icon
+        ' specialcharsEX applyword
+        ap-mode-rareEX not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "Marathon" fbold .. " Mode" .. WINSMARATHON $) $mode
+        "A grueling challenge.
+        It takes 30 driving days to get to Canada, rather than the usual 15 days. About a month of pain!
+        Zombie amount starts off 50% higher than normal, and eventually goes to double. 
+        Bandits are more cruel." $desc
+        MODE_ICONS 0x 9 + icon
+        ' marathonmode applyword
+        ap-mode-marathon not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "K*E*P*A " fbold .. "MODE" .. WINSKEPA $) $mode
+        "Kepa Expert Player Advanced Mode.
+        Double the zombies, double the fun.
+        Start with a Kepa. Do NOT let Kepa die. The ultimate challenge.
+        Bandits are more cruel." $desc
+        MODE_ICONS 0x 5 + icon
+        ' kepamode applyword
+        ap-mode-kepa not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "Four Jerks " .. RAINBOW .. "EXTREME" .. WHITE .. WINS4JERKSEX $) $mode
+        "Start with a car full of jerks, now with more zombies!
+        About 100% more zombies will spawn, and the Final showdown will have twice as many zombies as normal! Double Deluxe!
+        Bandits are more cruel." $desc
+        MODE_ICONS 0x 5 + icon
+        ' 4jerksmodeEX applyword
+        ap-mode-4jerksEX not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "ENDLESS " fbold .. "MODE" .. WINSENDLESS $) $mode
+        "Canada is a myth perpetuated by the former government!
+        America extends northward forever! Wake up sheeple!!!
+        Travel forever-ish. See how far you can get.
+        Bandits are more cruel." $desc
+        MODE_ICONS 0x 5 + icon
+        ' endlessmode applyword
+        ap-mode-endless not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "O*P*P " rainbold .. "MODE" .. WINSOPP $) $mode
+        "Over Powered Party! Final showdown is twice as long!
+        Get a special start that lets you pick any special characters you want and other goodies!
+        Fight Triple the default zombie amount!! Bandits are more cruel. Wins here do not count towards streaks." $desc
+        MODE_ICONS 0x 3 + icon
+        ' OPPmode applyword
+        ap-mode-opp not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "Quick Death " fbold .. "MODE" .. WINSQUICKDEATH $) $mode
+        "For anyone that wants to die FAST!
+        It only takes 9 driving days to get to Canada!
+        Triple the default zombie amount!!
+        Bandits are more cruel." $desc
+        MODE_ICONS 0x 1 + icon
+        ' quicknightmare applyword
+        ap-mode-quickdeath not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "INFECTION " pbold .. "MODE" .. WINS_INFECTION  $) $mode
+        "Race to Canada before your immunity expires. 
+        > In-mission timer ticks down; 10 days to Canada
+        > Timer can be increased by killing zombies
+        > If the timer runs out, you die - no refunds!
+        > Earned time is counted post-mission
+        > Cruel bandits" $desc
+        MODE_ICONS 32 + icon
+        ' theinfection applyword
+        ap-mode-infection not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "SEVERE WEATHER MODE" bbold .. "" .. WINS_WEATHER  $) $mode
+        "''Winter is coming'' IT'S ALREADY HERE, DINK!
+        > EXTREME WEATHER! Lightning, frost, floods!
+        > All chars eat an additional 1 food/night for warmth 
+        > 15 days, 1x zombies, cruel bandits 
+        > More engine issues
+        > (Don't) Stay Frosty!" $desc
+        MODE_ICONS 33 + icon
+        ' weathermode applyword
+        ap-mode-weather not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+     ($ "RPG MODE" rainbold .. "" .. WINS_RPG $) $mode
+        "Die of dysentry. Just kidding. 
+        > Zombies drop powerups!
+        > Select from 8 subclasses to play as!
+        > 3x zombs, cruel bandits, 15 days  
+        > Start with 2 bonus random chars" $desc
+        MODE_ICONS 34 + icon
+        ' thelongsiege applyword
+        ap-mode-rpg not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then 
+        
+    ($ "Four Jerks" .. ORANGE .. " SCEPTER" .. WHITE WINS_SCEPTER .. $) $mode
+        ($ "> Choose 4 custom characters to start!
+            > Gain access to an upgrade for each character!
+            > 3x zombs, 12 days, cruel bandits 
+            > Choose your contingent wisely! 
+            > Engineered for fun 
+        " .. GREEN .. "''No Sorcery Lies Beyond My Grasp.''" .. WHITE $) $desc
+        MODE_ICONS 35 + icon
+        ' sceptermode applyword
+        ap-mode-scepter not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then 
+        
+    ($ "MUTATION " rainbold .. "MODE" .. "" WINS_MUTATION .. $) $mode
+        "They're back - and they're MEGABUFF. 
+        > 15 days, 1x zombies 
+        > As days pass, zombs become resistant...
+        > Zombies gain fire resist, mass and grapple strengh!
+        > Winning raises max ZP by 5! 
+        > Cruel bandits" $desc
+        MODE_ICONS 36 + icon
+        ' mutationmode applyword
+        ap-mode-mutation not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+    ($ "INFECTION " pbold .. "MODE" .. " EXTREME" rainbold WINS_INFECTIONEX .. $) $mode
+        "The race to Canada is shorter than ever.
+        > Same ruleset as normal INFECTION 
+        > Now even shorter - only 7 days! 
+        > 10 minutes of total mission time!
+        > Cruel bandits" $desc
+        MODE_ICONS 37 + icon
+        ' theinfectionEX applyword
+        ap-mode-infectionEX not if 1 locked
+        "[ARCHIPELAGO] Locked until received from multiworld." $desc
+        then
+        
+;
+
+\ Re-run modedefs to apply our locked versions
+modedefs
+}
+
+\ Add ARCHIPELAGO option to main menu
+cyoa{
+    \ Handler for starting NEW archipelago game
+    cyoa-choice: ap-start-new
+        1 saveslot!
+        to-gamestart-setup
+    ;
+    
+    \ Handler for actually loading the game (after confirmation)
+    cyoa-choice: ap-do-load
+        1 saveslot!
+        gogo
+        1 saveslot!
+        MAIN_EVENT_DO_LOAD main-post-event
+    ;
+    
+    \ Confirmation screen before continuing (matches original game flow)
+    cyoa: ap-continue-confirm make-it-snappy
+        "- CONTINUE GAME -" cyoa-title!
+        "THE HORROR CONTINUES..." cyoa-text!
+        choice( "YIKES" )choice: ap-do-load
+    ;
+    
+    \ Handler for CONTINUING archipelago game - shows confirmation first
+    cyoa-choice: ap-continue-game
+        1 saveslot!
+        ap-continue-confirm
+    ;
+    
+    \ Archipelago sub-menu - shows continue only if save exists
+    cyoa: ap-game-menu make-it-snappy
+        load-slotinfo
+        "- ARCHIPELAGO -" cyoa-title!
+        "Archipelago uses Save Slot 1.\nProgress persists across deaths!" cyoa-text!
+        1 slot? if
+            choice( "CONTINUE GAME" )choice: ap-continue-game
+        then
+        choice( "NEW GAME" )choice: ap-start-new
+        choice( "BACK" )choice: select-start backicon
+    ;
+    
+    \ Handler for archipelago button
+    cyoa-choice: ap-start-game
+        ap-game-menu
+    ;
+    
+    \ Handler for reset confirmation
+    cyoa-choice: ap-do-reset
+        ap-reset-progress
+        "AP Progress has been reset!" print
+        select-start
+    ;
+    
+    \ Reset confirmation screen
+    cyoa: ap-reset-confirm make-it-snappy
+        "- RESET ARCHIPELAGO -" cyoa-title!
+        "This will DELETE all your Archipelago progress!\n\nKills, locations, containers, toilets, sieges, recruits - ALL RESET!\n\nAre you sure?" cyoa-text!
+        choice( "YES - RESET EVERYTHING" )choice: ap-do-reset
+        choice( "NO - GO BACK" )choice: select-start backicon
+    ;
+    
+    \ Handler for reset button
+    cyoa-choice: ap-reset-menu
+        ap-reset-confirm
+    ;
+
+    \ Our custom menu with ARCHIPELAGO option
+    cyoa: ap-main-menu make-it-snappy
+        load-slotinfo
+        filesave{ ' delete-game } to delete-the-game
+        "- SELECT -" cyoa-title!
+        "Choose game option:" cyoa-text!
+        
+        \ Add ARCHIPELAGO option first
+        choice( "*** ARCHIPELAGO ***" )choice: ap-start-game
+        
+        slotcount if
+            choice( "Continue Game" )choice: select-cont-game
+        then
+        choice( "New Game" )choice: select-new-game
+        choice( "Custom Characters" )choice: do-char-maker
+        choice( "Reset AP Progress" )choice: ap-reset-menu
+        choice( "BACK" )choice backicon cyoa-choice-esc-default
+    ;
+
+    \ Override the main entry point
+    : ap-do-select
+        gstats{ load }
+        gamedef{ modedefs }
+        gstats{ tutorial-done } if ap-main-menu then;
+        ' noop to delete-the-game
+        0 saveslot! MAIN_EVENT_NEW main-post-event "events/tutorial.df" $load-region to-mission
+    ;
+    
+    \ Override slotchoices-new to hide slot 1 (reserved for Archipelago)
+    : slotchoices-new 0 args( slot )
+        load-slotinfo
+        2 for
+            3 i - -> slot  \ This gives us slots 3, 2 (skipping when i=2 which is slot 1)
+            <- slot 1 = if else
+                choice( "empty" )choice: new-gamestart circleicon
+                <- slot slot? if
+                    slotinfo <- slot peek cyoa-choice-text! drop
+                    icons16_id ICON_UP + cyoa-choice-iconid!
+                    ballicon
+                    ' new-delete-game cyoa-choice-handler!
+                then
+                <- slot cyoa-choice-num!
+            then
+        next
+    ;
+    
+    \ Override slotchoices-cont to hide slot 1 (reserved for Archipelago)
+    : slotchoices-cont 0 args( slot )
+        load-slotinfo
+        2 for
+            3 i - -> slot
+            <- slot 1 = if else
+                <- slot slot? if
+                    choice( "..." )choice: cont-saveslot circleicon
+                    slotinfo <- slot peek cyoa-choice-text! drop
+                    <- slot cyoa-choice-num!
+                    ballicon
+                then
+            then
+        next
+    ;
+    
+    \ Set it as the event handler
+    ' ap-do-select to main-event-do-select
+}

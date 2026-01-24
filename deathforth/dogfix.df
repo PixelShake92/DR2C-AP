@@ -1,0 +1,179 @@
+// Dog Sprite Fix - load this LAST in boot.df
+// Fixes invisible custom dogs by spawning them fresh in mission
+
+: is-pending-dog? args( chara )
+    <- chara .user.ival@ 1000 >= 
+    <- chara .user.ival@ 1100 < and
+;
+
+// Convert character data but don't spawn thing yet
+: convert-dog-data args( chara )
+    <- chara is-pending-dog? if
+        "=== CONVERTING CHARACTER DATA ===" print
+        "Name: " type <- chara .name@ print
+        
+        // Save the data we need
+        <- chara .name@
+        <- chara .user.ival@ 1000 -  // breed
+        <- chara .morale@
+        <- chara .loyalty@
+        <- chara .composure@
+        
+        // Now doggify this character
+        <- chara .doggify
+        
+        // Restore stats (stack: name breed morale loyalty composure)
+        <- chara .composure!
+        <- chara .loyalty!
+        <- chara .morale!
+        <- chara .bodytype!  // breed
+        <- chara .name!
+        
+        // Clear the marker
+        0 <- chara .user.ival!
+        "" <- chara .trait!
+        
+        "Data converted! Pet: " type <- chara .pet@ . cr
+    then
+;
+
+// Track if we've set a leader yet
+0 value dog-leader-set
+
+// In mission: replace invisible dog with a fresh one spawned the proper way
+: spawn-dog-thing args( chara )
+    <- chara .pet@ 1 = if
+        <- chara .thing@ if
+            <- chara .thing@ .spriteid@ 0 = if
+                "=== REPLACING WITH FRESH DOG ===" print
+                "Name: " type <- chara .name@ print
+                
+                // Save all data from the broken character
+                <- chara .name@
+                <- chara .bodytype@
+                <- chara .morale@
+                <- chara .loyalty@
+                <- chara .composure@
+                
+                // Save old thing's position for non-vehicle missions
+                <- chara .thing@ .pos.x@
+                <- chara .thing@ .pos.y@
+                <- chara .thing@ .mapid@
+                // Stack: name bodytype morale loyalty composure x y mapid
+                
+                // Remove the broken character from team
+                <- chara .thing@ silentkillit
+                TEAM_STATUS_GOOD_LEFT <- chara .decruit
+                
+                // Spawn a FRESH dog exactly like the game does
+                new-npc lt .character@ .doggify
+                
+                // Stack: name bodytype morale loyalty composure x y mapid
+                // Save position values before we use them
+                >r >r >r  // mapid y x now on return stack
+                
+                // Apply stats to the new dog's character
+                lt .character@ .composure!
+                lt .character@ .loyalty!
+                lt .character@ .morale!
+                lt .character@ .bodytype!
+                lt .character@ .name!
+                
+                // Clear trait and perk - dogs shouldn't have these
+                "" lt .character@ .trait!
+                "" lt .character@ .perk!
+                
+                // Position the dog - enter vehicle if driving in, otherwise use old position
+                mission.vehicle@ if
+                    mission.vehicle@ .anim.state@ -2 = if
+                        // Car is driving in - enter the car so we ride in with it
+                        mission.vehicle@ lt .enter
+                        r> drop r> drop r> drop  // discard saved position
+                        "Entered vehicle" print
+                    else
+                        // Car already parked - position next to it
+                        r> drop r> drop r> drop  // discard saved position
+                        mission.vehicle@ .pos.x@ 40 + 0 20 frnd + lt .pos.x!
+                        mission.vehicle@ .pos.y@ -10 10 frnd + lt .pos.y!
+                        mission.vehicle@ .mapid@ lt .mapid!
+                        "Positioned near parked vehicle" print
+                    then
+                else
+                    // No vehicle - use the old thing's position
+                    r> lt .pos.x!
+                    r> lt .pos.y!
+                    r> lt .mapid!
+                    "Positioned at old location" print
+                then
+                
+                // Recruit the new dog
+                lt .character@ .recruit
+                
+                // Make it controllable
+                1 lt .character@ .party!
+                
+                // Make the FIRST dog the leader (player controlled)
+                dog-leader-set 0 = if
+                    lt .character@ .make-leader
+                    1 to dog-leader-set
+                    "Made leader!" print
+                then
+                
+                "Fresh dog spawned! spriteid: " type lt .spriteid@ . cr
+            then
+        then
+    then
+;
+
+: reset-dog-leader-flag
+    0 to dog-leader-set
+;
+
+: fix-custom-dog-sprites
+    "Checking team for pending dogs..." print
+    team-count dup "Team count: " type . cr
+    for
+        i 1- #teamchar 
+        dup .name@ "  Checking: " type print
+        convert-dog-data
+    next
+;
+
+: spawn-fresh-dog-things
+    "Checking for dogs needing fresh things..." print
+    team-count for
+        i 1- #teamchar spawn-dog-thing
+    next
+;
+
+// Hook into new game session - convert data before things spawn
+: dogfix-new-session-hook amend main-event-new-session
+    "=== DOGFIX: New session hook ===" print
+    fix-custom-dog-sprites
+;
+last to main-event-new-session
+
+// Hook into mission start - spawn fresh things if needed
+: dogfix-mission-hook amend main-event-mission-start
+    "=== DOGFIX: Mission start hook ===" print
+    fix-custom-dog-sprites
+    reset-dog-leader-flag
+    spawn-fresh-dog-things
+;
+last to main-event-mission-start
+
+// Hook into road start
+: dogfix-road-hook amend main-event-road-start
+    "=== DOGFIX: Road start hook ===" print  
+    fix-custom-dog-sprites
+;
+last to main-event-road-start
+
+// Hook into loaded session
+: dogfix-load-hook amend main-event-loaded-session
+    "=== DOGFIX: Load hook ===" print
+    fix-custom-dog-sprites
+;
+last to main-event-loaded-session
+
+"Dog sprite fix loaded!" print

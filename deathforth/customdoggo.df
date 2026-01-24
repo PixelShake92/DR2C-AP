@@ -1,0 +1,394 @@
+// ======================
+// CUSTOM DOG CREATOR
+// ======================
+// A CYOA-based system to create and customize dog characters
+
+// =====================
+// Dog breed definitions
+// =====================
+
+: dog-breed-name ( bodytype -- string )
+    case
+        0  of "German Shepherd"    endof
+        1  of "Labrador"           endof
+        2  of "Husky"              endof
+        3  of "Pug"                endof
+        4  of "Bulldog"            endof
+        5  of "Beagle"             endof
+        6  of "Golden Retriever"   endof
+        7  of "Dalmatian"          endof
+        8  of "Rottweiler"         endof
+        9  of "Border Collie"      endof
+        10 of "Pit Bull"           endof
+        11 of "Doberman"           endof
+        12 of "Poodle"             endof
+        13 of "Corgi"              endof
+        14 of "Shiba Inu"          endof
+        15 of "Great Dane"         endof
+        16 of "Chihuahua"          endof
+        17 of "Boxer"              endof
+        18 of "Puppy (Small)"      endof
+        19 of "Puppy (Fluffy)"     endof
+        20 of "Ultra-Wiener"       endof
+        "Unknown Breed"
+    endcase
+;
+
+// =====================
+// Dog creator state
+// =====================
+
+0 value custom-dog-char
+"" value custom-dog-name
+0 value custom-dog-breed
+3 value custom-dog-morale
+3 value custom-dog-loyalty
+3 value custom-dog-composure
+0 value custom-dog-slot
+
+: reset-dog-creator
+    "" to custom-dog-name
+    0 to custom-dog-breed
+    3 to custom-dog-morale
+    3 to custom-dog-loyalty
+    3 to custom-dog-composure
+    0 to custom-dog-slot
+    0 to custom-dog-char
+;
+
+// Apply dog settings to a character - SAVE AS HUMAN, DOGGIFY LATER
+: apply-custom-dog args( chara )
+    "Applying custom dog..." print
+    
+    // Generate a random seed for the character (important for appearance)
+    0 9999 rnd dup "Seed: " type . cr <- chara .seed!
+    
+    // Store breed in user.ival as marker (add 1000 to indicate "pending dog")
+    // Values 1000-1020 mean "this is a pending custom dog with breed 0-20"
+    custom-dog-breed 1000 + <- chara .user.ival!
+    
+    // Keep pet=0 so engine treats as human when spawning thing
+    0 <- chara .pet!
+    
+    // Set the name
+    custom-dog-name <- chara .name!
+    
+    // Set stats that will survive the clone
+    custom-dog-morale <- chara .morale!
+    custom-dog-loyalty <- chara .loyalty!
+    custom-dog-composure <- chara .composure!
+    
+    // Set empty perk and trait to avoid errors during .applyperk/.applytrait
+    "" <- chara .perk!
+    "" <- chara .trait!
+    
+    // Set a job that indicates this is a pending dog
+    ($ "is a custom " .. custom-dog-breed dog-breed-name .. ". A good dog!" $) <- chara .job!
+    
+    // Debug: print what we set
+    <- chara .name@ "Name set to: " type print
+    <- chara .user.ival@ "user.ival (1000+breed): " type . cr
+    <- chara .pet@ "Pet flag (0=pending): " type . cr
+    
+    "Custom dog saved (pending doggify)!" print
+;
+
+// Find empty slot (simple version - just use slot 0 for now)
+: find-empty-custchar-slot ( -- slot# or -1 )
+    -1
+    !!sel_custchars
+    CUSTOM_CHARS_EDIT_MAX for
+        dup -1 = if
+            i #character .name@ $len 0= if
+                drop i
+            then
+        then
+    next
+    !!sel_gamechars
+;
+
+// Random name
+: random-dog-name
+    0 17 rnd case
+        0 of "Rex" endof
+        1 of "Buddy" endof
+        2 of "Max" endof
+        3 of "Charlie" endof
+        4 of "Luna" endof
+        5 of "Bella" endof
+        6 of "Daisy" endof
+        7 of "Lucy" endof
+        8 of "Biscuit" endof
+        9 of "Nugget" endof
+        10 of "Sir Barksalot" endof
+        11 of "Dogmeat" endof
+        12 of "Doge" endof
+        13 of "Woofles" endof
+        14 of "Rocky" endof
+        15 of "Duke" endof
+        16 of "Bear" endof
+        17 of "Tucker" endof
+        "Dog"
+    endcase
+;
+
+// =====================
+// CYOA SECTION
+// =====================
+
+cyoa{
+
+// Forward declarations for all screens
+defer dog-main-screen
+defer dog-name-screen
+defer dog-breed-screen
+defer dog-breed-screen-2
+defer dog-breed-screen-3
+defer dog-stats-screen
+defer dog-save-screen
+defer dog-confirm-screen
+defer dog-reset-screen
+
+// ============================================
+// CHOICE HANDLERS (must be defined before screens)
+// ============================================
+
+// --- Main menu handlers ---
+cyoa-choice: dog-go-name      dog-name-screen ;
+cyoa-choice: dog-go-breed     dog-breed-screen ;
+cyoa-choice: dog-go-stats     dog-stats-screen ;
+cyoa-choice: dog-go-save      dog-save-screen ;
+cyoa-choice: dog-go-reset     dog-reset-screen ;
+cyoa-choice: dog-go-back      ; // empty - just closes CYOA
+
+// --- Name handlers ---
+cyoa-choice: dog-name-random  random-dog-name to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-rex     "Rex" to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-buddy   "Buddy" to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-max     "Max" to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-luna    "Luna" to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-bella   "Bella" to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-biscuit "Biscuit" to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-nugget  "Nugget" to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-barks   "Sir Barksalot" to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-meat    "Dogmeat" to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-doge    "Doge" to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-woofles "Woofles" to custom-dog-name dog-main-screen ;
+cyoa-choice: dog-name-back    dog-main-screen ;
+
+// --- Breed handlers ---
+cyoa-choice: dog-breed-0   0 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-1   1 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-2   2 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-3   3 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-4   4 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-5   5 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-6   6 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-7   7 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-8   8 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-9   9 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-10  10 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-11  11 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-12  12 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-13  13 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-14  14 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-15  15 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-16  16 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-17  17 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-18  18 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-19  19 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-20  20 to custom-dog-breed dog-main-screen ;
+cyoa-choice: dog-breed-more1 dog-breed-screen-2 ;
+cyoa-choice: dog-breed-more2 dog-breed-screen-3 ;
+cyoa-choice: dog-breed-back  dog-main-screen ;
+cyoa-choice: dog-breed-back2 dog-breed-screen ;
+cyoa-choice: dog-breed-back3 dog-breed-screen-2 ;
+
+// --- Stats handlers ---
+cyoa-choice: dog-morale-up    custom-dog-morale 1+ 6 min to custom-dog-morale dog-stats-screen ;
+cyoa-choice: dog-morale-dn    custom-dog-morale 1- 1 max to custom-dog-morale dog-stats-screen ;
+cyoa-choice: dog-loyalty-up   custom-dog-loyalty 1+ 6 min to custom-dog-loyalty dog-stats-screen ;
+cyoa-choice: dog-loyalty-dn   custom-dog-loyalty 1- 0 max to custom-dog-loyalty dog-stats-screen ;
+cyoa-choice: dog-composure-up custom-dog-composure 1+ 6 min to custom-dog-composure dog-stats-screen ;
+cyoa-choice: dog-composure-dn custom-dog-composure 1- 0 max to custom-dog-composure dog-stats-screen ;
+cyoa-choice: dog-stats-back   dog-main-screen ;
+
+// --- Save handlers ---
+cyoa-choice: dog-do-save
+    find-empty-custchar-slot dup -1 = if
+        drop "No empty slots!" print dog-main-screen
+    else
+        to custom-dog-slot
+        !!sel_custchars
+        custom-dog-slot #character to custom-dog-char
+        custom-dog-char apply-custom-dog
+        !!sel_gamechars
+        filesave{ save-custchars }
+        dog-confirm-screen
+    then
+;
+cyoa-choice: dog-save-back dog-main-screen ;
+
+// --- Confirm handlers ---
+cyoa-choice: dog-another reset-dog-creator dog-main-screen ;
+cyoa-choice: dog-done ; // empty - just closes CYOA
+
+// --- Reset handlers ---
+cyoa-choice: dog-do-reset reset-dog-creator dog-main-screen ;
+cyoa-choice: dog-reset-back dog-main-screen ;
+
+// ============================================
+// SCREENS (now all handlers exist)
+// ============================================
+
+// --- Main Screen ---
+cyoa: dog-main-impl
+    "- CUSTOM DOG CREATOR -" cyoa-title!
+    ($ "Name: " .. custom-dog-name $len 0 > if custom-dog-name else "(not set)" then ..
+       "
+Breed: " .. custom-dog-breed dog-breed-name ..
+       "
+Morale: " .. custom-dog-morale .. " | Loyalty: " .. custom-dog-loyalty .. " | Composure: " .. custom-dog-composure $) cyoa-text!
+    
+    choice( "Set Name" )choice: dog-go-name
+    choice( "Choose Breed" )choice: dog-go-breed
+    choice( "Adjust Stats" )choice: dog-go-stats
+    custom-dog-name $len 0 > if
+        choice( "SAVE DOG" )choice: dog-go-save
+    then
+    choice( "Reset" )choice: dog-go-reset
+    choice( "BACK" )choice: dog-go-back
+;
+' dog-main-impl to dog-main-screen
+
+// --- Name Screen ---
+cyoa: dog-name-impl
+    "- NAME YOUR DOG -" cyoa-title!
+    "Choose a name:" cyoa-text!
+    
+    choice( "Random" )choice: dog-name-random
+    choice( "Rex" )choice: dog-name-rex
+    choice( "Buddy" )choice: dog-name-buddy
+    choice( "Max" )choice: dog-name-max
+    choice( "Luna" )choice: dog-name-luna
+    choice( "Bella" )choice: dog-name-bella
+    choice( "Biscuit" )choice: dog-name-biscuit
+    choice( "Nugget" )choice: dog-name-nugget
+    choice( "Sir Barksalot" )choice: dog-name-barks
+    choice( "Dogmeat" )choice: dog-name-meat
+    choice( "Doge" )choice: dog-name-doge
+    choice( "Woofles" )choice: dog-name-woofles
+    choice( "BACK" )choice: dog-name-back
+;
+' dog-name-impl to dog-name-screen
+
+// --- Breed Screen 1 (Large) ---
+cyoa: dog-breed-impl
+    "- BREED (1/3) LARGE -" cyoa-title!
+    ($ "Current: " .. custom-dog-breed dog-breed-name $) cyoa-text!
+    
+    choice( "German Shepherd" )choice: dog-breed-0
+    choice( "Labrador" )choice: dog-breed-1
+    choice( "Husky" )choice: dog-breed-2
+    choice( "Golden Retriever" )choice: dog-breed-6
+    choice( "Rottweiler" )choice: dog-breed-8
+    choice( "Doberman" )choice: dog-breed-11
+    choice( "Great Dane" )choice: dog-breed-15
+    choice( "MORE..." )choice: dog-breed-more1
+    choice( "BACK" )choice: dog-breed-back
+;
+' dog-breed-impl to dog-breed-screen
+
+// --- Breed Screen 2 (Medium) ---
+cyoa: dog-breed-impl-2
+    "- BREED (2/3) MEDIUM -" cyoa-title!
+    ($ "Current: " .. custom-dog-breed dog-breed-name $) cyoa-text!
+    
+    choice( "Dalmatian" )choice: dog-breed-7
+    choice( "Border Collie" )choice: dog-breed-9
+    choice( "Pit Bull" )choice: dog-breed-10
+    choice( "Poodle" )choice: dog-breed-12
+    choice( "Shiba Inu" )choice: dog-breed-14
+    choice( "Boxer" )choice: dog-breed-17
+    choice( "MORE..." )choice: dog-breed-more2
+    choice( "BACK" )choice: dog-breed-back2
+;
+' dog-breed-impl-2 to dog-breed-screen-2
+
+// --- Breed Screen 3 (Small/Special) ---
+cyoa: dog-breed-impl-3
+    "- BREED (3/3) SMALL -" cyoa-title!
+    ($ "Current: " .. custom-dog-breed dog-breed-name $) cyoa-text!
+    
+    choice( "Pug" )choice: dog-breed-3
+    choice( "Bulldog" )choice: dog-breed-4
+    choice( "Beagle" )choice: dog-breed-5
+    choice( "Corgi" )choice: dog-breed-13
+    choice( "Chihuahua" )choice: dog-breed-16
+    choice( "Puppy (Small)" )choice: dog-breed-18
+    choice( "Puppy (Fluffy)" )choice: dog-breed-19
+    choice( "ULTRA-WIENER!" )choice: dog-breed-20
+    choice( "BACK" )choice: dog-breed-back3
+;
+' dog-breed-impl-3 to dog-breed-screen-3
+
+// --- Stats Screen ---
+cyoa: dog-stats-impl
+    "- ADJUST STATS -" cyoa-title!
+    ($ "Morale: " .. custom-dog-morale .. "/6
+Loyalty: " .. custom-dog-loyalty .. "/6
+Composure: " .. custom-dog-composure .. "/6" $) cyoa-text!
+    
+    choice( "DONE" )choice: dog-stats-back
+    custom-dog-morale 6 < if choice( "Morale +" )choice: dog-morale-up then
+    custom-dog-morale 1 > if choice( "Morale -" )choice: dog-morale-dn then
+    custom-dog-loyalty 6 < if choice( "Loyalty +" )choice: dog-loyalty-up then
+    custom-dog-loyalty 0 > if choice( "Loyalty -" )choice: dog-loyalty-dn then
+    custom-dog-composure 6 < if choice( "Composure +" )choice: dog-composure-up then
+    custom-dog-composure 0 > if choice( "Composure -" )choice: dog-composure-dn then
+;
+' dog-stats-impl to dog-stats-screen
+
+// --- Save Screen ---
+cyoa: dog-save-impl
+    "- SAVE DOG -" cyoa-title!
+    ($ "Save '" .. custom-dog-name .. "' the " .. custom-dog-breed dog-breed-name .. "?" $) cyoa-text!
+    
+    choice( "SAVE" )choice: dog-do-save
+    choice( "BACK" )choice: dog-save-back
+;
+' dog-save-impl to dog-save-screen
+
+// --- Confirm Screen ---
+cyoa: dog-confirm-impl
+    "- DOG SAVED! -" cyoa-title!
+    ($ "'" .. custom-dog-name .. "' saved to Custom Characters!" $) cyoa-text!
+    goodfx
+    
+    choice( "Create Another" )choice: dog-another
+    choice( "Done" )choice: dog-done
+;
+' dog-confirm-impl to dog-confirm-screen
+
+// --- Reset Screen ---
+cyoa: dog-reset-impl
+    "- RESET? -" cyoa-title!
+    "Reset all dog settings?" cyoa-text!
+    
+    choice( "YES" )choice: dog-do-reset
+    choice( "NO" )choice: dog-reset-back
+;
+' dog-reset-impl to dog-reset-screen
+
+// ============================================
+// ENTRY POINT
+// ============================================
+
+: do-dog-maker
+    reset-dog-creator
+    dog-main-screen
+;
+
+} // end cyoa{
+
+"Custom Dog Creator loaded!" print
