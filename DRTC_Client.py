@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Death Road to Canada - Archipelago Client (v3.2.1)
+Death Road to Canada - Archipelago Client (v3.2.2)
 A GUI client for connecting Death Road to Canada to Archipelago multiworld.
+
+New in v3.2.2:
+- Improved log readability: brighter colors for info/server messages
+  - Info: white (was grey)
+  - Server: light blue (was dark grey)
 
 New in v3.2.1:
 - FIXED: Multiple goal modes now requires ALL to be beaten (was triggering on ANY)
@@ -58,7 +63,7 @@ except ImportError:
 # =============================================================================
 
 APP_NAME = "Death Road to Canada - Archipelago Client"
-APP_VERSION = "3.2.1"
+APP_VERSION = "3.2.2"
 BASE_ID = 847000  # Must match APWorld
 GAME_NAME = "Death Road to Canada"
 
@@ -786,14 +791,14 @@ class DRTCClientApp:
         )
         self.log_text.pack(fill=tk.BOTH, expand=True)
         
-        self.log_text.tag_configure("info", foreground="#aaaaaa")
-        self.log_text.tag_configure("success", foreground="#00ff00")
-        self.log_text.tag_configure("error", foreground="#ff4444")
-        self.log_text.tag_configure("item", foreground="#ffcc00")
-        self.log_text.tag_configure("location", foreground="#00ccff")
-        self.log_text.tag_configure("game", foreground="#ff99ff")
-        self.log_text.tag_configure("server", foreground="#888888")
-        self.log_text.tag_configure("debug", foreground="#666666")
+        self.log_text.tag_configure("info", foreground="#ffffff")      # White - general info
+        self.log_text.tag_configure("success", foreground="#00ff00")   # Bright green
+        self.log_text.tag_configure("error", foreground="#ff4444")     # Red
+        self.log_text.tag_configure("item", foreground="#ffcc00")      # Gold - items received
+        self.log_text.tag_configure("location", foreground="#00ccff")  # Cyan - locations checked
+        self.log_text.tag_configure("game", foreground="#ff99ff")      # Pink - sent to game
+        self.log_text.tag_configure("server", foreground="#cc99ff")    # Lavender - server messages
+        self.log_text.tag_configure("debug", foreground="#aaaaaa")     # Grey - debug only
     
     def log(self, message: str, tag: str = "info"):
         def _log():

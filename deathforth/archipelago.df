@@ -1,6 +1,7 @@
 \ =============================================================================
 \ ARCHIPELAGO - Death Road to Canada Integration
-\ Version 3.7 - Batch item delivery (comma-separated inbox processing)
+\ Version 3.8 - Fixed menu display issues
+\            - Batch item delivery (comma-separated inbox processing)
 \            - Removed misleading "GOAL COMPLETE" (client determines multi-goal completion)
 \            - Fixed kill persistence across runs/deaths
 \            - Massively expanded random weapon pools (25+ common melee, 8 common guns,
@@ -315,7 +316,7 @@
     "GAS AFTER:" print trunk-gas print
     "AP: +50 Gas" ap-notify-item 
 ;
-: ap-item-103 20 trunk-bullet+ "AP: +20 Ammo" ap-notify-item ;
+: ap-item-103 10 trunk-bullet+ 6 trunk-rifle-shell+ 4 trunk-shotgun-shell+ "AP: +20 Ammo" ap-notify-item ;
 : ap-item-104 5 trunk-medical+ "AP: +5 Medical" ap-notify-item ;
 
 \ === STAT TRAINING ===
@@ -356,10 +357,10 @@
 : ap-item-211 75 trunk-gas+ "AP: +75 Gas" ap-notify-item ;
 : ap-item-212 100 trunk-gas+ "AP: +100 Gas" ap-notify-item ;
 : ap-item-213 150 trunk-gas+ "AP: +150 Gas" ap-notify-item ;
-: ap-item-220 10 trunk-bullet+ "AP: +10 Ammo" ap-notify-item ;
-: ap-item-221 30 trunk-bullet+ "AP: +30 Ammo" ap-notify-item ;
-: ap-item-222 50 trunk-bullet+ "AP: +50 Ammo" ap-notify-item ;
-: ap-item-223 75 trunk-bullet+ "AP: +75 Ammo" ap-notify-item ;
+: ap-item-220 5 trunk-bullet+ 3 trunk-rifle-shell+ 2 trunk-shotgun-shell+ "AP: +10 Ammo" ap-notify-item ;
+: ap-item-221 15 trunk-bullet+ 10 trunk-rifle-shell+ 5 trunk-shotgun-shell+ "AP: +30 Ammo" ap-notify-item ;
+: ap-item-222 25 trunk-bullet+ 15 trunk-rifle-shell+ 10 trunk-shotgun-shell+ "AP: +50 Ammo" ap-notify-item ;
+: ap-item-223 35 trunk-bullet+ 25 trunk-rifle-shell+ 15 trunk-shotgun-shell+ "AP: +75 Ammo" ap-notify-item ;
 : ap-item-230 3 trunk-medical+ "AP: +3 Medical" ap-notify-item ;
 : ap-item-231 8 trunk-medical+ "AP: +8 Medical" ap-notify-item ;
 : ap-item-232 15 trunk-medical+ "AP: +15 Medical" ap-notify-item ;
@@ -582,9 +583,9 @@
 : ap-item-700 gstats{ 1 ' zombo-point +! save } "AP: +1 Zombo" ap-notify-item ;
 : ap-item-701 gstats{ 2 ' zombo-point +! save } "AP: +2 Zombo" ap-notify-item ;
 : ap-item-702 gstats{ 5 ' zombo-point +! save } "AP: +5 Zombo!" ap-notify-item ;
-: ap-item-710 10 trunk-food+ 25 trunk-gas+ 10 trunk-bullet+ "AP: Mystery Box!" ap-notify-item ;
+: ap-item-710 10 trunk-food+ 25 trunk-gas+ 5 trunk-bullet+ 3 trunk-rifle-shell+ 2 trunk-shotgun-shell+ "AP: Mystery Box!" ap-notify-item ;
 : ap-item-711 morale--all -5 trunk-food+ "AP: Pandora..." ap-notify-item ;
-: ap-item-730 10 trunk-food+ 10 trunk-gas+ 10 trunk-bullet+ 10 trunk-medical+ "AP: Supply Drop!" ap-notify-item ;
+: ap-item-730 10 trunk-food+ 10 trunk-gas+ 5 trunk-bullet+ 3 trunk-rifle-shell+ 2 trunk-shotgun-shell+ 10 trunk-medical+ "AP: Supply Drop!" ap-notify-item ;
 
 \ === SAFE DAMAGE HELPER ===
 \ Skip damage entirely to prevent any deaths from traps
@@ -602,7 +603,7 @@
 : ap-item-901 morale--all morale--all "TRAP: Morale Crisis!" ap-notify-item ;
 : ap-item-902 ap-safe-ouch-all "TRAP: Ambush!" ap-notify-item ;
 : ap-item-903 -25 trunk-gas+ "TRAP: Gas Leak!" ap-notify-item ;
-: ap-item-904 -15 trunk-bullet+ "TRAP: Weapon Jam!" ap-notify-item ;
+: ap-item-904 -8 trunk-bullet+ -5 trunk-rifle-shell+ -2 trunk-shotgun-shell+ "TRAP: Weapon Jam!" ap-notify-item ;
 : ap-item-905 -10 trunk-food+ -5 trunk-medical+ "TRAP: Thief!" ap-notify-item ;
 : ap-item-906 ap-safe-ouch-all "TRAP: Injury!" ap-notify-item ;
 : ap-item-907 
@@ -614,7 +615,7 @@
 : ap-item-909 ap-safe-ouch-all -10 trunk-food+ "TRAP: Bandits!" ap-notify-item ;
 : ap-item-910 morale--all "TRAP: Bad Omen!" ap-notify-item ;
 : ap-item-911 morale--all "TRAP: Bad Weather!" ap-notify-item ;
-: ap-item-912 -10 trunk-bullet+ "TRAP: Gear Lost!" ap-notify-item ;
+: ap-item-912 -5 trunk-bullet+ -3 trunk-rifle-shell+ -2 trunk-shotgun-shell+ "TRAP: Gear Lost!" ap-notify-item ;
 : ap-item-913 ap-safe-ouch-all -5 trunk-food+ "TRAP: Food Poison!" ap-notify-item ;
 : ap-item-914 morale--all "TRAP: False Hope!" ap-notify-item ;
 
@@ -2893,7 +2894,7 @@ last to main-event-new-session
 \ Try to load persistent progress on mod load
 ap-load-progress
 
-"Archipelago mod v3.7 loaded" print
+\ AP Initialization complete
 "  - Use the ARCHIPELAGO menu option!" print
 "  - Progress persists across deaths" print
 "  - Kill tracking now persists properly!" print
@@ -3275,3 +3276,11 @@ cyoa{
     \ Set it as the event handler
     ' ap-do-select to main-event-do-select
 }
+
+\ =============================================================================
+\ NOTE: Victory and siege hooks require modified base game files:
+\ - events/finale/end-of-the-road.df (add: defer on-victory, call on-victory in fin-script)
+\ - events/siege/siege.df (add: defer on-siege-complete, call on-siege-complete in siege-over)
+\ =============================================================================
+
+"Archipelago mod v3.8 loaded" print
